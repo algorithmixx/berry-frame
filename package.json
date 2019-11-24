@@ -1,11 +1,17 @@
 {
-  "name": "berry-frame",
-  "version": "1.0.1",
-  "description": "A framework for building Raspberry Pi applications with a web browser interface.",
-  "main": "BerryFrame.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "author": "Gero Scholz",
+    "bugs": {
+    "url": "https://github.com/algorithmixx/berry-frame/issues"
   },
+  "dependencies": {
+    "node-getopt": "^0.3.2"
+  },
+  "deprecated": false,
+  "description": "A framework for building Raspberry Pi applications with a web browser interface.",
+  "engines": {
+    "node": ">= 9.7.0"
+  },
+  "homepage": "https://github.com/algorithmixx/berry-frame",
   "keywords": [
     "Raspberry",
     "Pi",
@@ -15,9 +21,15 @@
     "REST",
     "API"
   ],
-  "author": "Gero Scholz",
   "license": "ISC",
-  "dependencies": {
-    "node-getopt": "^0.3.2"
-  }
+  "main": "BerryFrame.js",
+  "name": "berry-frame",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/algorithmixx/frame-berry.git"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "version": "1.0.2"
 }
