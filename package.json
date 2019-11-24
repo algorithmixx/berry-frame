@@ -1,0 +1,23 @@
+{
+  "name": "berry-frame",
+  "version": "1.0.1",
+  "description": "A framework for building Raspberry Pi applications with a web browser interface.",
+  "main": "BerryFrame.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "Raspberry",
+    "Pi",
+    "framework",
+    "browser",
+    "websocket",
+    "REST",
+    "API"
+  ],
+  "author": "Gero Scholz",
+  "license": "ISC",
+  "dependencies": {
+    "node-getopt": "^0.3.2"
+  }
+}
