@@ -99,7 +99,7 @@ class Hardware {
 			// Such a class will typically register some methods at the device classes.
 			// its (single) instance can be accessed by target:"app" in a harware description file
 			if (this.appClass!="") {
-				this.appObject = new (require("../../"+type+"/server/"+type+".js")[this.appClass])(this,true,silent);
+				this.appObject = new (require(process.cwd()+"/"+type+"/server/"+type+".js")[this.appClass])(this,true,silent);
 			}
 			else {
 				this.appObject=null;
@@ -511,7 +511,7 @@ class Hardware {
 	apiHelp(type) {
 		var help = {
 			Syntax:		"Hardware elements are referenced by their id. Depending on the type of the element "+
-						"you can use one of the folowing APIs; to reference the Hardware in general, use 'id:hardware'.",
+						"you can use one of the following APIs; to reference the Hardware in general, use 'id:hardware'.",
 			Example:	"If a hardware description contains a LED named 'alarm', you could call "+
 						"yourBerryServer:port/api?id=alarm,cmd:blink,cycles:3",
 			Api:		Api.getApiDescription(),
@@ -532,7 +532,7 @@ class Hardware {
 				help[type] = appClass.getApiDescription();
 			}
 			catch(e) {
-				; // if we doi not have an application class: ignore silently
+				; // if we do not have an application class: ignore silently
 			}
 		}
 		return help;

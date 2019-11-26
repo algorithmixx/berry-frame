@@ -20,7 +20,7 @@ berry/bin/berry Master  1>Master.log 2>Master.err &
 chmod 666 Master.err Master.log
 chown pi:pi Master.log Master.err
 
-for berry in Hello Sword
+for berry in $*
 do
 	echo "starting $berry .."
 	# start $berry

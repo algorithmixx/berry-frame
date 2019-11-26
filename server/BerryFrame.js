@@ -25,7 +25,7 @@ class BerryFrame {
 		// get current script name
 
 		this.scriptName	 = process.argv[1].replace(/.*[/\\]/,'').replace(/[.]js$/,'');
-		this.versionId	 = "1.0.0";
+		this.versionId	 = "1.0.4";
 		
 		// find known Berry application types and their default properties (description, port, rev, ..)
 		this.appTypes = this.findAppTypes();
@@ -106,13 +106,13 @@ class BerryFrame {
 					+'Purpose:\n'
 					+'  Start a Raspberry Pi application (a "Berry") with attached devices and create a socket server\n'
 					+'  which allows to control the application via a generic browser interface.\n'
-					+'  If this program is called under Windows (or with option "-e" it will emulate the hardware.\n'
+					+'  If this program is called under Windows (or with option "-e") it will emulate the hardware.\n'
 					+'  The program requires as an argument the name of a hardware configuration file.\n'
 					+'  The special built-in name "Master" will create a registration service for all other Berries.\n'
 					+'\n'
-					+'Version:    '+this.versionId+'   --   more info on https://followthescore.org/itcanbefun\n'
+					+'Version:    '+this.versionId+'\n'
 					+'\n'
-					+'Usage:\n  node server/'+this.scriptName+' [Options..]  <berryType>\n'
+					+'Usage:\n  berry  [Options..]  <berryType>\n'
 					+'\nOptions:\n[[OPTIONS]]\n'
 					+'\n'
 					+'Available <berryTypes>:\n'+appsHelp
@@ -129,7 +129,6 @@ class BerryFrame {
 					+'  REST requests do not have surrounding braces; member names and data values need not be quoted,\n'
 					+'  unnecessary commas are allowed. Example:\n' 
 					+'  http://myberryserver:9004/api/id:motionA,cmd:getValue,\n'
-					+'  Socket requests must follow standard JSON syntax; they are emitted with the label "action".\n'
 			)
 			.parseSystem()
 		;

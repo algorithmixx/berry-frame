@@ -137,8 +137,8 @@ The directory tree of a typical installation will then look like this:
 
 ````
 (development root)
-    berry						(Unix)
-    berry.bat 					(Windows)
+    berry                       (Unix)
+    berry.bat                   (Windows)
     log
         Master.log              (log file for Master)
         Master.err              (error file for Master)
@@ -147,15 +147,15 @@ The directory tree of a typical installation will then look like this:
     node_modules
         ...
         berry-frame
-            ...		
+            ...
     YourBerry
-        audio               (media resources for client and server)
-        img                 (images for the web client)
+        audio                   (media resources for client and server)
+        img                     (images for the web client)
         server
-            YourBerry.hwd   (JSON hardware description of your berry)
-            YourBerry.js    (javascript source for your berry)
-            YourBerry.log   (log file for YourBerry)
-            YourBerry.err   (error file for YourBerry)
+            YourBerry.hwd       (JSON hardware description of your berry)
+            YourBerry.js        (javascript source for your berry)
+            YourBerry.log       (log file for YourBerry)
+            YourBerry.err       (error file for YourBerry)
 ````
 
 ## Starting a _berry_

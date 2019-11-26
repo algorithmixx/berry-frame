@@ -318,7 +318,8 @@ class Server {
 				}
 			}
 			else if (action.cmd=="start") {
-				my.startABerry(action.type,action.name);				
+				if (!action.type) return {msg:"type required"};
+				else return my.startABerry(action.type,action.name||action.type);				
 			}
 			else {
 				// REST API for harware configuration and current state			
@@ -329,7 +330,6 @@ class Server {
 			}
 			
 		}
-		
 
 		else if	(action.id=="hardware") {
 			
@@ -373,16 +373,6 @@ class Server {
 			// the element targets the app specific class (remote procedure call)
 			if (action.cmd=="help") return { help: theHardware.apiHelp(my.type) };
 			return {error:"use cmd:help to see how the API can be used."};
-		}
-
-		// ACTIONS referring to a server as a whole (only for Berry Master)
-		else if (action.id=="server") {
-			// the element targets the app specific class (remote procedure call)
-			if (action.cmd=="start") {
-				var msg = "starting Berry: "+action.type+": "+action.name;			
-				Logger.log("Master       "+msg);
-				return msg;
-			}
 		}
 
 		// ACTIONS referring to individual hardware ELEMENTS
@@ -546,11 +536,12 @@ class Server {
 	startABerry(type,name) {
 		// start a server by writing the startup command to a file
 		// where it hopefully will be picked up by the monitor
-		Logger.info("Server       starting "+type+": "+name);
+		Logger.info("Server       starting berry "+type+": "+name);
 		const fs=require('fs');
-		fs.writeFile("./restart.cmd","node berry/server/Berry -n "+name+" "+type,function(err) {
+		fs.writeFile("./restart.cmd","node node_modules/berry-frame/Berry -n "+name+" "+type,function(err) {
 			if(err) Logger.error(err);
 		});
+		return {msg:"starting berry, type="+type+", name="+name};
 	}
 
 	tellMaster(op,callback) {
