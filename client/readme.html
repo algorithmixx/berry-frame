@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<link rel="icon" type="image/png" href="img/icon.png">
+	<link rel="stylesheet" type="text/css" href="css/Readme.css" media="screen" />
+	<script src="lib/jquery.min.js"></script>
+	<script src="lib/commonmark.min.js"></script>
+	<script src="js/Utils.js"></script>
+	<title>Berry Manual</title>
+</head>
+<body><div class="MD">
+	<img src="http:img/berries.jpg" style="float:right;width:400px;margin-left:10px"/>
+
+# __Berry__
+##  A Framework for building<br/>Raspberry Pi Applications<br/>with a Web UI
+
+	_( Gero Scholz, January 2020)_ 
+
+<div style="clear:both"></div>
+
+## INTRODUCTION
+
+	__Berry__ is the name of a framework written in _Javascript_. 
+	The applications you build with __Berry__ (and _Javascript_) are called _Berries_.
+	
+	If you develop more than one application for small embedded computers you will
+	quickly notice that more than 70% of your program code does not really deal
+	with the application logic itself but with technical issues like accessing
+	a certain device or handling communication between your Raspi and a web client.
+	__Berry__ offers a way to separate all this generic technical stuff from the
+	real application logic.
+	
+	__Berry__ is not a "graphical tool for drawing your programming logic".
+	It rather believes in the power of formal, structured declarations. 
+	Therefore it demands you to describe the hardware configuration of your 
+	peripherals in a so-called __hardware definition file (HWD)__ with a simple 
+	grammar based on JSON syntax. The HWD notation also establishes some standard 
+	rules for visual representation of hardware elements in the browser UI 
+	and for the general flow of information between UI elements and 
+	hardware devices connected to the Raspi´s GPIO ports.
+
+	<div class="hilight">
+	As soon as things get more complex, you will have to provide some Javascript
+	code (preferibly ES6 standard) to describe the logic of your application.
+	The logical part of yor _Berry_ works on the server. If you want to 
+	customize the UI you can also add code and resource files to the client side.</div>
+	
+	
+	<img src="http:img/procrus.jpg" style="float:right;margin-left:10px"/>
+	
+	### A framework, yes, but hopefully not a bed of Procrustes!
+	
+	Using a framework means that you have to accept some decisions 
+	which were taken by the creator of __Berry__. While frameworks in former
+	times esteemed themselves like the godfather of the application nowadays they
+	try to be more modest, ideally "non obtrusive". __Berry__ is somewhere
+	in the middle. It has a clear idea of a layered software architecture
+	and takes control over hardware access and over the web server.
+	But it gives you a lot of possibilities to hook into its skeleton or to extend it.
+	
+	<hr/>
+	
+	Think of __Berry__ being the __technical boss__ and you being the __chief of application__.
+	
+	<hr/>
+	
+	The question __How much declaration and how much dedicated coding do we want?__
+	is crucial for the design of a framework like __Berry__.
+	
+	An __example__: If you have a temperature sensor you may want to watch
+	its value regularly and switch a LED to ON if it is too high or light a different LED
+	if it is too low. The HWD (i.e. the hardware definition file of your _Berry_)
+	is powerful enough to define this behavior in pure declaratory style 
+	without any algorithmic coding. 
+	
+	In a concrete case, however, it might seem useful to trigger the over-temperature signal
+	only if there were three consecutive observations (slightly) above the threshold. If the value
+	exceeds the upper limit by more than 10%, however, the light should go on immediately.
+	This kind of logic would be a clear candidate for specific server-side, hand written 
+	application code of your _Berry_.
+	
+	Similar rules apply to the UI. The declarations within the HWD allow you to place 
+	the current value delivered by the temperature sensor somewhere on the browser screen 
+	with all possibilities of CSS formatting. But if your _Berry_ is a weather station 
+	you probably will like to use a rich set of pictograms in addition to the numeric 
+	temperature value. In that case you will have to add a new function to the client 
+	which receives the current temperature value from the __Berry__ framework 
+	and creates your desired visual representation. This may include Javascript code,
+	CSS declarations, providing images and animations, sound, videos etc.
+	
+	<hr/>
+
+# Table of Contents
+	
+	<div class="hilight">
+		1)  <a href="#c1" > Main Features of Berry		</a><p/>
+		2)  <a href="#c2" > How do I work with Berry?	</a><p/>
+		3)  <a href="#c3" > Architecture				</a><p/>
+		4)  <a href="#c4" > Customization				</a><p/>
+		5)  <a href="#c5" > Supported Device Types		</a><p/>
+		6)  <a href="#c6" > Hardware Configuration		</a><p/>
+		7)  <a href="#c7" > Server, Master and Monitor	</a><p/>
+		8)  <a href="#c8" > Client						</a><p/>
+		9)  <a href="#c9" > Task structure				</a><p/>
+		10) <a href="#c10"> Download					</a><p/>
+		11) <a href="#c11"> Installation				</a><p/>
+		12) <a href="#c12"> Sample Berries				</a><p/>
+		13) <a href="#c13"> Starting a Berry			</a><p/>
+		14) <a href="#c14"> Creating a Berry			</a><p/>
+		15) <a href="#c15"> Author						</a><p/>
+		16) <a href="#c16"> License and Copyright		</a><p/>
+		
+	</div>
+	
+	## <a name="c1"/> 1) Main Features of __Berry__
+	
+	
+	__Berry__ can be installed and run on a Raspberry Pi and on Windows.
+	On Windows __Berry__ emulates the hardware peripherals ("devices") of the Raspi.
+	The emulation can also be used on the Raspi itself, e.g. for replicable tests
+	or if the hardware is not physically connected for some reason. 
+    But do not expect too much: The emulation is an aid for development and test;
+	it does not try to resemble the behavior of real hardware devices by any means.
+
+	__Berry__ consists of classes which encapsulate hardware devices,
+	a web server, a registration service for servers and a generic web client.
+
+	__Berry__ applications (short: _Berries_) are formally defined by a
+	hardware definition file (HWD) and one or more Javascript classes which have 
+	to be written by the application designer.
+
+	__Berry__ comes with a generic web client which can display all supported hardware 
+	device types in 'basic optics'. Application specific code can be added to enhance
+	and customize the user interface.
+
+	__Berry__ clients can connect to more than one _Berry_ (server) simultaneously.
+	This means that a client can work as a control center for several _Berries_
+	of the same type or even of different types.
+
+	__Berry__ uses fast light-weight socket communication between clients and servers,
+	providing full synchronisation of the physical hardware with all attached clients.
+	
+	__Berry__ works asynchronously for time-consuming hardware-related functions.
+
+	__Berry__ comes with a registration service (__Berry Master__) to facilitate
+	mutual cooperation between multiple _Berries_ (possibly running on different Raspis).
+
+	__Berry__ is written in Javascript (ES6 syntax); the server part runs on Node.js, 
+	the client part runs in the browser.
+
+	__Berry__ requires no installation (apart from Node.js and some public modules).
+
+	__Berry__ is reasonably fast on modern Raspi hardware. It can even be used on older models
+	with acceptable performance but you will observe _very long loading times_ (~30 sec.) there, 
+	possibly due to memory swapping in the loading phase. If you can accept that, 
+	the performance might be ok once it is up and running.
+
+	__Berry__ is open source and can be used freely (see license chapter).
+	
+	<div class="hilight">
+	Sure, many useful features. But there must be some <b>negative points</b> as well?<p/>
+	Yes. There is a <b>learning curve</b>. It is easy to build simple applications.
+	But complex applications with exotic devices will require you to extend the framework.
+	This means that you must understand its architecture - which requires some effort, indeed.
+	<p/>
+	And in spite of the many features you will probably miss one aspect: <b>security</b>.
+	Berry does not help you to protect your system against evil attacks. In fact __Berry__ is
+	very liberal; the generic web client can stop or restart the server or even
+	shutdown the whole Raspi. For embedded devices it is quite normal to have
+	a physical "off"-button which shuts down the whole device. But if you allow
+	web connections to your machine you may want to protect such features by some kind
+	of access control. Berry __will not prevent you__ from doing that, 
+	but it has no built-in security features to help you with protecting your _Berries_.
+	
+	If you want to add security aspects to the __Berry framework__: Contact the author!
+	</div>
+
+	### Why should I use __Berry__?
+
+	* It makes your life easier. You only write the "net" code of your application.
+	* It uses the same language (_Javascript) on the server and on the client.
+	* Running on _Windows_ during development speeds up the edit/run cycle significantly.
+	* The formal hardware description is a good documentation for your project.
+	  A nicely formatted version can also be shown to the user in the browser.
+	* You get benefits like a REST-like API for your application without much effort.
+	* You get a starting point for building cooperative Raspi applications.
+	* You do not have to care about communication between server and client.
+	* You get a simple UI out of the box without any client-side programming.
+	
+	<img src="http:img/workWithBerry.jpg" width="400px" style="float:right;margin-top:15px;margin-left:10px"/>
+
+## <a name="c2"/> 2) How do I work with Berry?
+
+	To build your own _Berry_ you must provide a formal description of the hardware
+	elements connected to the GPIOs (or USB ports) and you must provide a Javascript class 
+	which describes the specific behavior of your system.
+
+	__Berry__ comes with a bunch of classes which encapsulate certain types of hardware elements,
+	like push buttons, LEDs, LED strips, motion sensors, speakers and microphones.
+	The _lower layer_ of these encapsulating classes deals with __protocols__ like 
+	digital I/O, PWM, 1-Wire, SPI and I²C. The _upper layer_ deals with sensor/actuator specifics.
+	
+	If the type of hardware you want to connect is already there, everything is fine.
+
+	If you want to connect other hardware elements you will need to extend the framework
+	by a class to _encapsulate your specific type of hardware_. Doing this is not too complicated.
+	__And without _Berry_ you would have to write very similar code anyway.__ 
+	
+	As said before, __Berry__ supports emulation of Raspi hardware elements under Windows.
+	So, if you are extending the framework you will also have to provide (minimalistic) code
+	to do some sort of emulation (returning random values or whatsoever).
+	For a new type of hardware element, say: a motor, you will also have to provide
+	a reasonable optical client representation with HTML/CSS/JS.
+	
+	<hr>
+	Enough of theory and preambles?
+	Maybe you want to go to "Download and Installation" now.
+	
+	But sooner or later you will notice that a good understanding of __Berry´s__ architecture
+	is helpful. So maybe you better continue reading here, now?
+	
+	
+## <a name="c3"/> 3) ARCHITECTURE
+
+	__Berry__ has a layered architecture.
+	Apart from the physical hardware we have three software layers:
+	__Hardware Management__, __Web Service__ and the __Web User Interface__.
+
+	```
+  -----------------------------------------------------------------------------------------
+    PHYSICAL HARDWARE         HW	Physical Hardware connected to the Raspi
+  -----------------------------------------------------------------------------------------
+    HARDWARE MANAGEMENT       HP	Hardware Protocol Encapsulation
+                              HA	Hardware Access, Device Type Encapsulation
+                              HC	Hardware Configuration and Control
+  -----------------------------------------------------------------------------------------
+    WEB SERVICE               WS	Web Server
+  -----------------------------------------------------------------------------------------
+    WEB USER INTERFACE        WC	Web Client
+  -----------------------------------------------------------------------------------------
+   ```
+
+	More details can be seen in the following diagram:
+	
+	<img src="http:img/architecture.jpg" style="width:700px;margin-left:10px"/>
+
+	
+## <a name="c4"/> 4) CUSTOMIZATION 
+
+	As can be seen in the diagram each software layer has a part that is defined by 
+	the __Berry Framework__	and an (optional) part that can be added/configured	
+	according to the needs of your _Berry_ application (shown on the right hand side in red color).
+	
+	The implementation of a layer can also include publicly available 
+	_third party Node.js modules_ (shown on the left hand side in orange).
+	The hardware layer uses libraries for various protocols (like GPIO, I²C or SPI)
+	and for certain device types (e.g. WS2801).	The web server uses libaries for http handling 
+	and socket communication. The web client uses a very common library called _jquery.js_ 
+	and another library called _commonmark.js_ for rendering MarkDown syntax to HTML.
+	
+	<img src="http:img/customize.png" style="float:right;width:300px;margin-left:10px"/>
+
+	### Let us briefly look at each layer:
+
+	* __HP - the protocol encapsulation__ - is fairly complete; 
+	  It comprises:
+	  * _GPIO_: general purpose tri-state input/output pins with configurable pull up/pull down
+	  * _PWM_: hardware controlled pulse width modulation (only at supported pins)
+	  * _PWM_: software controlled pulse width modulation (most other GPIO pins)
+	  * _1Wire_: 1 wire protocol for sensors
+	  * _SPI_: serial peripheral interface (SPI0 and SPI1), a master-slave connection
+	  * _I²C_: inter-integrated circuit protocol, a more flexible and more complex master-slave connection
+	* __HA - the device access layer.__ Details on the currently supported types can be found in the next chapter.
+	  If you want to use a device of a type which is not yet supported you will have to add new classes
+	  to this layer. This could be a stepper motor, a RFID reader using SPI or another 1-Wire sensor 
+	  or whatever you need.
+	* __HC - the hardware control__ - is a generic module which is mainly driven by a JSON file 
+	  containing the hardware description (HWD) which you must provide. 
+	  The HWD must contain all hardware elements (type and properties) of your _Berry_.
+	  It also contains elementary layout hints for UI representation and settings for
+	  automated information flow. If you add new classes to layer HA you have to add small 
+	  pieces of code to Hardware.js. in layer HC to enable the new types.
+	* __WS - the web server__ - will in many cases have to be extended by a class which contains
+	  the specific logic of your application. That class should be derived from "App", 
+	  which is provided as a parent class by the __Berry__ framework. This class does Note
+	  sit in the framwork directory tree. It is rather a direct part of your _Berry_.
+	* __WC - the web client__ - could be extended if you feel that the standard way to display
+      the hardware peripherals of your _Berry_ is not adequate for your needs. We recommend to 
+	  separate your code from the generic web client, but right now there are no built-in mechanisms
+	  for the coexistence of the generic Berry web client and your own client. In some
+	  cases you may want to replace major parts of the generic client and only retain its
+      functionality for socket communication.	  
+
+	<hr/>
+
+	If you make extensions to the framework which can be useful for others - especially in the 
+	HA layer, we encourage you to contact the author so that your contribution can be added 
+	to the framework.
+	So, if you added support for more sensors or actuators, let us know! In such cases
+	please also provide an extension to the generic client (WC) so that the new elements can
+	be visualized adequately in the browser UI.
+	
+	You may also want to add _pure software application components_ like e.g. a _scheduler for timed tasks_
+	or _abstract devices_ like a _persistent memory_ that could store configuration and calibration
+	settings which survive a reboot of the Raspi.
+	
+	Of special interest are contributions regarding the control of _physical displays_.
+
+
+	<img src="http:img/peripherals.jpg" style="float:right;width:300px;margin-left:10px"/>
+	
+## <a name="c5"/> 5) SUPPORTED DEVICE TYPES ( layer: BHA / AHA )
+
+	* _Button_: A push button or a switch button with configurable debouncing
+	* _PWDevice_: A device that can take hardware controlled pulse width signals (like a servo motor)
+	* _LED_: A light emitting diode with configurable color and a flexible blinking method
+	* _WS2801_: An SPI controlled strip of RGB LEDs where each LED can be individually controlled
+	* _DS1820_: A One Wire thermo sensor
+	* _PMU6500_: A very common motion sensor which is connected through I²C.
+	* _TextInput_: A text input area (a virtual device, only available in the browser UI)
+	* _Display_: A generic character display (EMULATION ONLY)
+	* _Speakers_: A sound producing equipment which can be accessed through standard drivers
+	* _Microphone_: A sound recording equipment which can be accessed through standard drivers
+	* _FrontPanel_: A built-in device type which corresponds to the physical hardware housing
+	  It is represented in the client UI as a rectangular screen area which is a base for the
+      relative positioning of all other peripheral elements (device representations)
+	* _Label_ : A fixed element on the front panel of a _Berry_
+	* _Action_ : Actions are virtual (non-physical) devices which appear ONLY in the web UI;
+	  they can be used to make API calls or to assist in testing/debugging.
+	  
+	Device types missing: step motor (possibly connected via GPIO), more 1-wire sensors,
+	force sensors, AD-converters, DA-converters, relais, .. and many more ..
+
+
+## <a name="c6"/> 6) HARDWARE CONFIGURATION ( layer: BHC / AHC )
+
+	<img src="http:img/json.png" style="float:right;width:300px;margin-left:10px"/>
+
+	The hardware configuration for a _Berry_ is described in (slightly extended) JSON notation (*.hwd files).
+	The framework parses the HWD file and "builds" the hardware by assembling the necessary
+	classes and connecting their information flow.
+	
+	The HWD provides general information about the application (like its name, type, textual description
+	and revision number) and a list of its __elements__.
+	
+	Elements are physical parts of the hardware but can also be abstract "Actions", which appear only
+	in the UI and do not have a physical correspondence.
+	Apart from technical details like GPIO numbers, debounce times etc. the HWD also contains layout
+	declarations for the representation of each element on the browser screen ("virtual front panel").
+
+	HWD files allow to define simple connections between a Button and other elements like LEDs.
+	Therefore in some cases you could even define a Berry application without a specific 
+	application server class.
+
+	See our "Hello" _Berry_ as an example.
+	
+	
+### 6.1) Extended JSON Syntax
+
+	HWD uses JSON syntax. In addition the following rules apply:
+	* both types of comments (double // and /* .. */) are allowed
+	* attribute names must not be enclosed in quotes;
+	this means that you write something like {name:"foo"} and not {"name":"foo"}
+	* superfluous commas are allowed and will be ignored
+	* strings can be broken into multiple lines by simply writing them line by line,
+	each part enclosed with quotes
+	* You must not use the percent sign (%); use "&amp;percnt;" instead
+
+
+### 6.2) Basic structure
+		
+```
+{
+    title:      "A text which will appear in the web client´s head region."
+                "It can contain arbitrary HTML",
+    type:       "the type of the application; it should start with a capital",
+    desc:       "A description of the application which is shown in the web client on user´s demand."
+                "Arbitray HTML, slashes must be escaped.",
+    port:       a valid (free) port number,
+    appClass:   "empty OR the application class name (which should equal the application type)",
+    rev:        "A string to identify the hardware revision",
+    img:        "file name of an image which will be shown in the web client"
+                "the image is searched in "client/hardware/<type>/",
+    elms:       [ an array of Elements ]
+}
+```
+		
+	Elements are _physical_ devices of the application which are represented in the web client.
+	The special elements "Action" and "Manual" are _virtual_ devices, which only exists in the web client.
+
+	A hardware definition must contain exactly one element of type "FrontPanel". All other
+	elements are (absolutely) positioned relative to this element.
+	
+	Element types have some basic built-in CSS formatting for the client which can be overwritten in the
+	"style" attribute.
+
+
+### 6.3) ELEMENT definition (GENERAL attributes):
+```
+{
+    type:       "a valid element type like "+
+                "FrontPanel,Label,"+
+                "Button,LED,PWDevice,WS2801,MPU6500,TextInput,Display,Microphone,Speakers,"+
+                "Manual,Action,..",
+    id:         "a unique literal to identify an emement; the id is typically _not_ visible to the user",
+    name:       "a name to describe the element; the name is visible to the user for most element types",
+    title:      "a help text which is displayed on mouse over",
+    gpio:       a GPIO/BCM number to identify the pin connected to the element,
+    cable:      "a description of the cable(s) leading to the device, typically its color",
+    color:      "a CSS color which applies to the representation of the lement in the web client",
+    style:      "CSS definitions which describe the UI representation of the element in the web client",
+    emulate:    "true if an element is not physically available; if Berry is running on Windows"+
+                "this property is automatically TRUE for all elements"
+}
+```
+
+
+### 6.4) ELEMENT definitions (SPECIFIC attributes):
+
+```
+FrontPanel: {}
+
+Label: {}
+
+Button: {
+    debounce:    a time in msec to avoid unwanted double triggers,
+    pressed: {
+        elm:     "elm" OR [ "elm1","elm2", .. ],
+        cmd:     "a command, must be a method supported by 'elm' },
+    },
+    down: {
+        ..       (same attributes as "pressed")
+    },
+    up: {
+        ..       (same attributes as "pressed")
+    },
+    downUp: {
+        ..       (same attributes as "pressed")
+    }
+}
+         The events "pressed","up" and "down" can be linked to one or more (other) elements;
+         "downUp" applies to "down" AND "up" and should be used to avoid redundance.
+         A given Button can only use one of the following combinations:
+         (pressed),(up),(down),(downUp),(pressed+down),(pressed+up),(pressed+downUp)
+         The "cmd" will be executed when the event fires (i.e. the user clicks/presses/releases the button)
+    
+LED: {
+    color:       "the (CSS) color of the LED when lighted",
+    interval:    the duration (msec) of a on/off cycle in a "blink" command, default: 250,
+    ratio:       a percentage of ON time during blinking, default: 50,
+    cycles:      number of repetitions, default: 3
+    duration:    defines a limit (msec) for the blinking process (excesss cycles being ignored)
+}
+
+PWDevice: {
+    drives:      "the id of another element which is connected to the PWDevice, e.g. a LED",
+}
+
+DS1820; {
+    addresse:    "the id of the sensor",	// can be found looking at /sys/bus/w1/devices/*
+    monitor: {
+        interval: monitoring interval in msecs,
+        display:  "id of a display to receive each new value",
+    },
+    below: {
+        value:    the lower threshold (°C),
+        elm:      "id of the element to be targetes",
+        cmd:      "command to be sent to thet targeted element",
+    },
+    between: {
+        value:    range of two values (°C^),
+        elm:      "id of the element to be targetes",
+        cmd:      "command to be sent to thet targeted element",
+    },
+    above: {
+        value:    upper threshold (°C),
+        elm:      "id of the element to be targetes",
+        cmd:      "command to be sent to thet targeted element",
+    },
+}
+
+MPU6500: {}
+
+Display: {
+    xDim:      width in pixels,
+    yDim:      height in pixels,
+}
+
+TextInput: {
+    cols:      the number of columns,
+    rows:      the number of rows,
+}
+
+Microphone: {}
+
+WS2801: {
+   numLEDs:    the number of LEDs on the strip,
+   spi:        "the SPI device to use, 0.0, 0.1, 1.0 or 1.1",
+   speed:      the frequency (Hertz) of data transfer, rounded to a power of 2, default = 2e6,
+   reverse:    can be 0 or 1.0, reverses the sequence of the LEDs,
+}
+
+Speakers: {}
+
+Action: {
+    target:    "the id of the element to which the Action refers",
+    cmd:       "the command which shall be invoked on the element",
+    prog:      "a parameter to be sent together with the invocation",
+    arg:       "a string containing JSON elements and their values"
+               "the string will be split into pieces along comma"
+               "the resulting arguments will be used in the invocation"
+}
+```
+
+
+## <a name="c7"/> 7) SERVER, MASTER and MONITOR ( layer: BS / AS )
+
+	<img src="http:img/websocket.png" style="float:right;width:400px;margin-left:10px"/>
+
+	### HTTP
+	
+	The Berry Server layer acts like a traditional web server delivering files.<br/>
+	Its URL handling is based on the following rules:
+		
+	* It redirects an empty URL to ``index.html``.
+	* It treats URLs starting with ``/reg?`` as registration requests between a _Berry server_
+	  and the _Master Berry server_.
+	* It treats URLs starting with ``/api/`` as REST-API calls.
+	* It treats an URL starting with ``/app/Master/`` as a reference to the _Berry Master_.
+	* It treats all other URLs starting with ``/app/`` as a reference to your _application Berry_
+	* It treats all other URLs as a reference to the generic client of the Berry framework.
+	
+	
+	### Socket communication
+	
+	The Berry server establishes web socket communication with all clients and uses it for ..
+
+	* direct responses to a client socket request, delivering hardware configuration and full state of the hardware
+	* transmitting a list of active servers to a client
+	* transmitting a list of inactive (startable) servers to the clients of the Master
+	* direct responses to single ``getValue()`` requests of a client, delivering selected hardware status information
+	* broadcasts to push changed state(s) of hardware elements to all connected clients
+
+	
+	### Master Berry
+	
+	__Berry__ comes with a __built-in Master application__ which is in principle a normal _Berry_ but has some
+	special functions for maintaining a list of currently active _Berries_ and
+	another list of _Berries_ which can be started via the _Master Berry_.
+	
+	
+	### Monitor
+	
+	__Berry__ has a watchdog mechanism which is called the MONITOR.
+	
+	If you start the MONITORING SCRIPT it will regularly check if a _Berry_ was terminated 
+	and said that it wished to be restarted. This means, of course, that a _Berry_
+	going down for a restart must write suitable restart information to a place where
+	the MONITOR will pick it up. This place is a file in BERRY_HOME named "restart.cmd".
+
+
+	<img src="http:img/client.png" style="float:right;width:400px;margin-left:10px"/>
+
+## <a name="c8"/> 8) CLIENT ( layer: BC / AC )
+
+	The generic client receives a copy of the HWD from the server and uses the layout
+	information (CSS) contained in the HWD to arrange the hardware elements on the screen,
+	i.e. painting the front opanel with all its elements.
+	
+	As a mnemonic it also displays a photo (or schematic diagram) of the physical hardware.
+	
+	It also adds a large heading (configurable in the HWD) above the front panel
+	
+	The client can contact the REST API of its server _Berry_, show syntax help and send
+	single REST requests in a separate browser tab to the server.
+	
+	On request of the server it helps to establish a web socket connection with the server.
+	
+	Whenever the server sends new socket messages with changed state information the client
+	will update values or colors in the UI. The client can also play sound files if told by
+	the server.
+	
+	Whenever the user interacts with the browser UI the client will construct a socket
+	message for the server describing the event (like "button x pressed").
+	
+	The client monitors the socket connection and tries to re-establish it 
+	if the server disappears unexpectedly.
+	
+	The client offers the possibility to STOP (permanently) or STOP-AND-RESTART its
+	server _Berry_.
+	
+	The client offers an UPDATE service to install the latest version of the __Berry framework__.
+	
+	Regarding the Raspberry Pi computer itself the client can issue a command which 
+	will perform a REBOOT on the Raspi or a SHUTDOWN/HALT.
+	
+	The client can show the current MANUAL text (by clicking on the berry symbol in 
+	its top left corner).
+	
+	The client can show the HWD file to the user (probably only developers
+	and expert users will be interested in this).
+	
+	The client allows you to download a ZIP file of the currently running _Berry_
+	so that you can easily transfer it to another machine where the __Berry framework__ is installed.
+	
+	The client can show a nicley formatted PIN MAP which documents all physical
+	connections to the hardware.
+	
+	The client can not only show the UI for the _Berry_ it contacted initially. If a
+	Berry Master is active and if the client´s server has connected to the Master, the client
+	will be given a list of all active _Berries_. It can then show their UIs as well.
+	In fact it becomes a normal client for those servers - with the exception that it
+	cannot stop or restart those other servers.
+	
+
+## <a name="c9"/> 9) TASK STRUCTURE
+	
+	The following diagram shows the task management of __Berry__.
+	Tasks are marked with a "colored button".
+	
+	Basically you have the following tasks
+	
+	* the MONITOR (cycle of 5 seconds)
+	* The WEB-SERVERS of all active _Berries_ serving HTTP
+	* The WEB-SERVERS of all active _Berries_ listening to SOCKETS
+	* The WEB_CLIENTS of all connected browsers listening to SOCKETS of each server they are connected to
+	
+	<img src="http:img/tasks.jpg" style="width:1200px;margin-left:10px"/>
+
+
+## <a name="c10"/> 10) DOWNLOAD
+
+	<img src="http:img/directories.jpg" style="float:right;width:300px;margin-left:10px"/>
+
+	First you need to create a _Berry home directory_ (hereafter called 'BERRY_HOME') somewhere
+	on your machine. BERRY_HOME will contain the _Berry framework_ itself and your own _Berry application(s)_.
+	
+	For an installation on Windows BERRY_HOME could be something like ___c:\berries___
+	
+	For an installation on the Raspi you could choose something like ___/var/www/html/berries___
+	or ___/home/pi/berries___
+	
+	Download one of the ZIP files from the web:
+		* <a href="https://followthescore.org/berry/berry.rpi.zip">berry.rpi.zip</a>
+		* <a href="https://followthescore.org/berry/berry.win.zip">berry.win.zip</a>
+	
+	and unzip it within	your BERRY_HOME, so that you end up with a structure like
+
+
+````
+    BERRY_HOME              the home place for the Berry framework and for your own Berry Apps ("Berries")
+        berry                   the framework itself
+            bin                     the binaries of Berry
+            client                  the generic WEB UI
+            hw_control              the hardware control modules
+            hw_devices              the hardware device type encapsulation modules
+            hw_protocols            the hardware protocol encapsulation modules
+            Master                  the home place of the Berry Master (hwd and client resources)
+            sample_berries          a number of examples
+            server                  the Berry server (http and sockets)
+            test                    (ignore this)
+            utils                   common basic modules (logging)
+            ...                     some script files .. 
+````
+
+	Now unzip some of the sample berries (we suggest to begin with ``Hello``) directly into BERRY_HOME.
+	When you later create your own _Berries_ they will also live directly underneath BERRY_HOME.
+	
+	You may want to copy some of the scripts from berry\bin directly to BERRY_HOME. For instance,
+	if you copy ``berry\bin\b.bat`` you can then start __Berry__ by simply typing "b" instead of ``berry\bin\b``.
+	
+	BERRY_HOME which will now look like this:
+
+````
+    BERRY_HOME              the home place for the Berry framework and for your own Berry Apps ("Berries")
+        berry                   the framework itself
+            ...                 all the sub-directories as described above ...
+        Hello                   a directory containing the Hello berry (copied from berry/sample_berries)
+            audio                   an empty directory for audio resources of the berry
+            img                     a directory for images of the berry
+                Hello.jpg               an icon to identify the berry in the UI (a schematic diagram in this case)
+            server                  a directory containing server side resources of the berry
+                Hello.hwd               the hardware definition of the berry
+        YourOwnBerry            the home directory of a berry you may want to create 
+            ...                     ... with the same structure as shown in 'Hello'
+        some_scripts            like b.bat, master.bat, monitor.bat
+````
+	
+	Whenever you start a _Berry_ on the server you must do that from BERRY_HOME
+	calling a script in berry/bin (or a copy of that scriot within BERRY_HOME). 
+	But before we can do this we must install ``Node.js``
+	and download some ``node_modules`` via the __node package manager__ (``npm``).
+   	
+
+	<img src="http:img/install.jpg" style="float:right;width:200px;margin-left:10px"/>
+
+## <a name="c11"/> 11) INSTALLATION
+
+	_Berry_ can (and should!) be installed on _Windows_ and on your _Raspberry Pi_.
+	
+	Start with the installation on Windows. It is easier and faster and
+	you will need it for the development of your _Berries_ anyway.
+	
+	We assume that you downloaded the ZIP file as described above, unzipped one or
+	more of the sample_berries and have your BERRY_HOME ready.
+	
+
+### 11.1) Installation on Windows
+
+	Install ``Node.js`` (and its package manager ``NPM``) using the download and 
+	installation procdures from http://nodejs.org
+
+	The latest version might be something like 12.x.0 LTS (long time support)
+	
+	Open a command shell window and type ``node -v`` to see the version number you installed.
+	Type ``npm -v`` and see if you get something like "6.x.0".
+	
+	The ZIP file you downloaded already contains various ``node_modules`` which __Berry__
+	needs to work correctly. We recommend to __update__ these modules:
+	Go to the ``BERRY_HOME\berry`` and execute ``install_node_modules.bat``; 
+	
+
+	
+### 11.2) Test on Windows
+
+	Change back to BERRY_HOME and execute ``berry\bin\berry`` or simply type ``b``
+	if you copied the script ``b.bat`` from ``berry\bin`` to BERRY_HOME.
+	You should get a lengthy explanation on how to start Berry from the command line.
+	You will see chapters on Purpose, Version, Usage, Option, avialable Berries
+	and some Notes. The text will end with an error message because we did not 
+	tell __Berry__ which of our _Berries_ we want to start.
+	
+      Now let us call ``b Hello -l 1"
+	
+	This starts the ``Hello`` Berry and activates Logging.
+	When the script starts, the first output line will contain the port number;
+	in our case: 9001. The other lines of the Log tell you that Berry found
+	and parsed ``Hello.hwd``, assembled the modules necessary for the hardware
+	configuration described in the HWD, started the Web Server (listening at port 9001),
+	began to watch the state of a LED and tried to register itself at a Berry
+	Master which it expects to find on port 9000. There was no response but 
+	this is not a problem (it only means that you get no help for cooperation
+	between multiple _Berries_).
+	
+	__So, now the server is up and waiting for requests!__
+		
+	
+      It is time to open your browser and point it to ``localhost:9001``.
+	
+	"localhost" means that the _Hello Berry server_ is running on the same machine as
+	the browser. So the browser does not have to search within your LAN or even
+	within the internet. Instead it will use the IP 127.0.0.1 which is by convention
+	always the IP of the local machine where the browser is running.
+	
+	The browser will show a web page like this:
+	
+	<img src="img/screenHello.png"/>
+	
+	But what happened to the command line window with the server? It was flooded
+	with a lot of text! __Scroll up__ in the terminal window and try to understand what happened.
+	
+	You will see:
+	* First it got an empty HTTP request from the browser which it interpreted as a request for ``index.html``
+	* Afterwards it received HTTP requests for ``BerryUI.css`` and some other files.
+	  This happened because ``index.html`` references these files as it needs them to work properly.
+	  When the browser sees those references it understands that it must request these
+	  files from the server.
+	* Then we see the first SOCKET request issued by the _Berry Client_: It tells
+	  the "hardware" to "getAll". As a response the _Berry server_ sends a very long "hardware setup"
+	  message which contains the hardware configuration of ``Hello``.
+	* As a next step the server automatically sends the current state of its hardware.
+	  In our case this is quite simple: The LED with the id 'led' is off, described by a value of 0.
+	* The server tries another time to register itself at a Master but fails again
+	  (it tries to register whenever a new client contacts the server).
+	* Apart from that we see that the web client requested two images; one of them
+	  can be seen on the right hand side of the UI; the other one is hidden at the moment.
+	  
+      Switch to the browser and click on the small gray "Hello" button at the bottom left.
+
+	* This will show a descriptive text in a yellow box and a large table with the pinout.
+	  And next to that table you will find the second image (the greenish raspi board) 
+	  which had already been loaded in the step before.
+	* And there is a list at the bottom of the table which explains every bit of the HWD.
+	  All this information was prepared from the HWD config information which was initially
+	  sent by the server. This means, on the other hand, that the client DID NOT HAVE TO TALK
+	  TO THE SERVER when you pressed the gray 'Hello' button.
+
+      Click the small gray "Hello" button again to hide the additional information.
+	  
+	* Again, this action did not affect the server. It is still sleeping and waiting
+	  for client requests. So let´s wake it up!
+	  
+      Click on the "press and hold" button in the UI, hold it down for a moment,
+      look at the server´s command window, and finally release the button.	  
+	  
+	* The browser detected the _button down_ event, sent it as a socket message to the
+	  server as you can see in the server log lines.
+	* Then the server talked to the (virtual) "Hardware" which switched the LED #15 to "ON"
+	  (#15 is the GPIO number to which the LED is connected; note that GPIO #15
+	  sits on physical pin #10, as the pinout told us).
+	* Now the server sends a broadcast to all clients with LED "led" having a value of 1.
+	* Your client gets the message and switches the LED to "green" because it learnt from the
+	  former hardware setup message that the LED has a green color.
+	* When you released the button another message travelled from the browser
+	  to the server and the LED went OFF. This new state was transferred back to 
+	  the browser and (only then!) the browser replaced the green LED color
+	  by a dark gray to indicate that it is OFF now.
+	  
+      Now you should open a second client in another browser or at least in another
+      browser tab, so that you can see everything simultaneously:
+      The two browser screens and the server log. Then press the button
+      in one of the windows and see what happens!
+	  
+	We recommend to experiment with this setting. You may also want to open the 
+	_Hello Berry_ from your mobile device. In that case your PC and your mobile
+	device should be connected via WiFi and you must know the name or IP addresse of
+	your desktop computer where the _Hello Berry_ is running.
+
+	Assuming that your Windows machine can be reached under 192.168.0.44
+	you type http://192.168.0.44:9001 into the browser on your mobile device
+	and you should see the user interface. In the command log you will see that 
+	the server now talks to all three clients, eagerly propagating status changes
+	of the LED induced by any client´s action to all of them in near real time.
+	
+      Finally you should try out the other functions of the client.
+
+	* Click onto the green letters "HWD" in the lower part of the screen.
+	* Click onto the red raspberry icon in the top left corner of the UI to see this manual.
+	* Click onto the green letters "API" and change the URL in the new tab
+	  to http://localhost:9001/api?id:"led",cmd:"toggle"
+	  refreshing the page should give you values 0 and 1 alternatingly.
+	  if you have a look at the web UI of ``Hello`` at the same time you 
+	  will see the LED going on and off. The Log lines of the server will
+	  tell you that it received an API request and that it changed the LED state.
+
+
+### 11.3) Installation on the Raspberry Pi
+
+	This chapter describes the installation from scratch. If you have your Raspi already up
+	and running you may want to skip the first parts.
+
+	If you do not want to use WiFi you can ignore steps marked with [WiFi]. In that case you should
+	follow the steps marked with [LAN]. If your Raspi has a RJE45 LAN connector we recommend 
+	to use the LAN connection at least during installation as it is probably more stable and has 
+	better performance.
+
+      As usual you start on a Windosw PC to prepare the SD card:
+	
+	* download and install __Etcher__, __putty__ and __filezilla__ (or another ftp utility)
+	* download __Raspbian lite__ from https://www.raspberrypi.org/downloads/raspbian/
+	* unzip the download
+	* use Etcher to copy the unzipped img file to SD card
+	* add an empty file named "ssh" to root partition of the SD card
+	* [WiFi] add the file "wpa_supplicant.conf" to the root partition of the SD card. EXAMPLE:
+	```
+    country=DE # Your 2-digit country code
+    ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+    network={
+        ssid="YOUR_NETWORK_NAME"
+        psk="YOUR_PASSWORD"
+        key_mgmt=WPA-PSK
+    }
+	```
+ 
+	* [WiFi] make sure you have a Raspi with built-in WiFi or use a Wifi USB stick
+	* [LAN] connect the RJE45 jack to your local network
+
+      Put the SD card into the Raspi and switch power on.
+
+	* Stay on the PC and **connect to the Raspi via putty**
+	* use the symbolic name RASPBERRYPI or search in your network for that name and note the IP
+	  that was assigned to it by your network infrastructur.
+	* Login with ``putty`` as user "pi" with password "raspberry".
+	* call ``sudo raspi-config`` to configure localization, hardware interfaces, network name and other items
+	* if you chose to expand the file system you should reboot the Raspi and reconnect via putty
+
+	* update and upgrade your system: ``sudo apt-get update`` then ``sudo apt-get upgrade`` then again ``sudo apt-get update``
+
+	* ``sudo chmod +s /sbin/shutdown`` This step will allow _Berries_ to shutdown the Raspi.
+	
+      Install __wiringPi__ and (if you wish) __Apache__
+	
+	* ``sudo apt-get install wiringpi``
+	* ``sudo apt-get install apache2 php libapache2-mod-php``
+	* ``cd /var/www/html``
+	* ``sudo chown pi:pi . *``
+ 
+      Now check if you see the Apache welcome page when calling your Raspi from the browser of your PC.
+	
+	Please note that a web server like Apache is _NOT REALLY NEEDED_ for Berry.
+	If you do not install Apache you can run your _Berry_ application on port 80
+	which may be quite comfortable for the user and which is also a safe way
+	to avoid problems with firewalls of network components.
+
+      Now it is time to install Node.js
+
+	Please note: If you have a Raspi Zero you have an armv61 processor.
+	In that case you should install directly from the "dist" directory of nodejs.org the version 9.7.1 for armv61
+````
+    curl -o node-v9.7.1-linux-armv6l.tar.gz https://nodejs.org/dist/v9.7.1/node-v9.7.1-linux-armv6l.tar.gz
+    tar -xzf node-v9.7.1-linux-armv6l.tar.gz
+    sudo cp -r node-v9.7.1-linux-armv6l/* /usr/local/
+````
+	If you have a newer processor you can use apt to get the latest version of nodejs and npm:
+	* ``sudo apt-get install nodejs npm``
+	
+	Install an __ftp server__
+	* ``sudo apt-get install proftpd``
+	* Open your ftp client on Windows and connect to the raspberry pi as user "pi"
+	* transfer your Berry_HOME from the PC the Raspi.
+	* (alternatively you could download berry.rpi.zip as desribed before)
+	
+      Important: You must update all node_modules
+
+	The copy that you made from your Windows BERRY_HOME contained the node_modules which had been
+	installed by the Windows version of ``npm``. These modules (at least some of them) will not
+	work on the Raspi. And, as explained before, the Raspi needs additional node_modules
+	compared to Windows. And the modules should be up to date. So, perform the following steps: 
+	
+	* ``cd berry``
+	* ``rm -fr node_modules``
+	* ``rm package-lock.json``
+	* ``chmod 777 install_node_modules``
+	* ``./install_node_modules`` (if the script complains about missing permissions start it with ``sudo``
+	  and change afterwards everything underneath node_modules to owner "pi"
+
+
+      Make a first test
+ 
+	* ``cd ..``  (will take you to BERRY_HOME)
+	* ``berry/bin/berry`` : you should see the command line help information of berry
+	
+	* copy the script ``onreboot`` from berry/bin to BERRY_HOME and adapt it to your needs.
+	* make the script executable: ``chmod 777 onreboot``
+	* call "sudo crontab -e", choose the "nano" editor and add the following line to the end of sudo´s crontab:
+      ``@reboot /var/www/html/berries/onreboot`` ; this means that on every reboot the script will
+	  be executed automatically
+	* start the monitor if you want: ``berry/bin/monitor &``
+	* Configure your hardware and make sure the HWD file fits the real hardware.
+	* start your app with logging: ``berry/bin/berry MyApp -l 1 &``
+	* or without logging: ``berry/bin/berry MyApp``
+	* Use 'Hello' instead of your own App if you want to make sure that the installation is working.
+
+
+	<img src="http:img/samples.jpg" style="float:right;width:200px;margin-left:10px"/>
+		
+## <a name="c12"/> 12) SAMPLE BERRIES
+
+### Hello
+      Light the LED while the button is held down.
+	The most basic Berry one can think of. That´s why it is called 'Hello (World)'.
+	
+### Circle
+      A nice game where circularly arranged buttons control corresponding lights.
+	This a simple extension of ``Hello``. Change the assignment between buttons
+	and LEDs, add/remove a button etc. to understand the mechanics of a HWD file.
+	
+### Dimmer
+      Use a simple push button to dim a LED
+	Useful as a tutorial. Introduces the concept of application specific Javascript code
+
+### Weather
+      Read a temperature sensor and trigger alarms
+	Introduces a sensor which can continually deliver values.
+	Shows how to establish automated server-side sensor polling by HWD declarations.
+	Could be extended to more sensors.
+
+### Sword
+      A Led strip with a handle and a motion sensor.
+	Meant as the base for a lot of fun experiments. Contains an application class
+	which does time-critical processing (light strip animations) and reacts
+	on a motion sensor. This class can be modified and extended and will help
+	you to implement your own ideas. There are also sub-classes for special
+	functions like showing the current time ("Clock.js"). This file is a good
+	starting point for your own experiments.
+
+### Traffic
+      (not yet available)
+	This _Berry_ shows how two instances of an application can iteract.
+	The idea is to use the Sword hardware and simulate traffic lights.
+	We can simulate arriving traffic by pressing the buttons at each Sword.
+	The Swords must cooperate to control the trafic flow. They must 
+	make sure, of course, that always one of them is RED.
+	We can also simulate the startup phase of a traffic light system
+	with blinking YELLOW on all lights, steady YELLOW and RED on all
+	lights, followed by a first cycle of RED/YELLOW, GREEN /YELLOW / RED
+	for one direction. Shutting off traffic lights at a crossing usually
+	is done by all lights going RED, then all lights BLINKING YELLOW
+	for some time and then all lights going OFF.
+	
+		
+## <a name="c13"/> 13) STARTING A BERRY
+
+	the command must be started from the "berries" home directory.
+	```
+	berry/bin/berry [options] <berryType>     to start an application     
+	berry/bin/berry -h                        for help on command line options
+	berry/bin/berry -a [<berryType>]          for help on the REST API
+	```
+	You may want to execute these commands in the background (adding &amp;) and/or
+	redirect stdout and stderr.
+
+
+	<img src="http:img/aBerry.png" style="float:right;width:200px;margin-left:10px"/>
+
+## <a name="c14"/> 14) CREATING A BERRY
+
+	We recommend to start working under Windows. Once your _Berry_ runs in the emulation
+	you transfer the files of your _Berry_ to the Raspi and execute it there.
+	
+	
+###	14.1) Decide on the hardware and the functionality of your _Berry_
+
+	We want to have a push button and a LED. The LED shall be ON while the button is held down.
+	It shall be OFF while the button is UP.
+	
+	As this is the most basic application we can think of, let us call it "Hello".
+	
+	The name "Hello" is, precisely spoken, the name of a _Berry Type_.
+	
+	What does that mean? Well, you could have __two__ Raspberry computers with each one running
+	your glorious "Hello" application. Then you have two INSTANCES of your APPLICATION TYPE.
+	If you now have a web client which connects to both "Hello" _Berries_ we
+	would like to have a separate NAME for each INSTANCE.
+	
+	``berry/bin/berry Hello -n World``  
+	will create an instance of `Hello` named `World`.
+	
+	`berry/bin/berry Hello -n Moon`  
+	will create another instance of `Hello` named `Moon`.
+	
+	
+### 14.2) Describe your configuration in a HWD file
+
+	Create the new subdirectory ``Hello`` under your "berries" home directory.
+	Create a HWD config file in ``Hello\server\Hello.hwd``.
+	Decide on the port number to use and put that number into the HWD at the ``port`` property.
+	
+	To make life easy for you we have already provided a 
+	<a href="/app/Hello/server/Hello.hwd" target="hwd">file named Hello.hwd</a>.
+	
+      Read that file carefully. Try to add another button and another LED!
+	
+	
+### 14.3) Prepare the client
+	Create ``Hello\audio`` and ``Hello\img``.
+	
+	Make a nice photo of your hardware or use a tool like "fritzing" to draw a schematic diagram
+	and put it into ``Hello\img\Hello.jpg``.
+	Note that the name of this image (without path) is referenced in the HWD file.
+
+### 14.4) Develop your application logic
+	In this simple exampe we do not need that.
+	
+### 14.5) Start your _Berry_ on Windows
+
+	Lean back and go to BERRY_HOME. Call ``berry/bin/berry Hello`` and wait what happens.
+	If you do not see error messages complaininig about invalid JSON syntax in ``Hello.hwd``
+	you can now open a browser on the defined port like this:
+	``http://localhost:9001´´
+
+### 14.6) Improve your _Berry_
+	Change the HWD or your JS applicatiion code. Then press the blue button in the client.
+	The client will tell the server to terminate and restart. __Only after the restart__ the
+	server will load your changed code and you see the effect.
+
+### 14.7) Go to the target platform
+
+	If everything runs fine in the emulation, copy your _Berry_ into the BERRY_HOME
+	directory on the Raspberry Pi (using ftp)) and test it there. 
+	Don´t forget to start the __monitor__.
+	
+	If you make changes to the code or to the HWD file you can use the blue RESTART button in 
+	the Web UI to restart the server of your _Berry_ (if the monitoring script is running).
+	
+	If you keep your master version on Windows you must make sure that a changed file
+	is transferred to the Raspi before you execute it there.
+
+	Once everything seems ok you should also provide a ZIP file for your _Berry_ so that
+	interested users can download it and duplicate it onto their machines.
+	The script ``berry\bin\zip_berries.bat`` will help you in creating the ZIP.
+
+## <a name="c15"/> 15) AUTHOR
+	<a href="mailto:gero.scholz@gmail.com">Gero Scholz</a>
+
+
+## <a name="c16"/> 16) LICENSE AND COPYRIGHT
+	Copyright 2019 Gero Scholz.
+
+	This program is free software; you can redistribute it and/or modify it
+	under the terms of either: the GNU General Public License as published
+	by the Free Software Foundation; or the Artistic License.
+
+	See http://dev.perl.org/licenses/ for more information.
+
+</div></body>
+</html>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<link rel="icon" type="image/png" href="img/icon.png">
+	<link rel="stylesheet" type="text/css" href="css/BerryUI.css" media="screen" />
+	<script src="lib/jquery.min.js"></script>
+	<script src="lib/commonmark.min.js"></script>	
+	<script src="lib/3d-model-bundle.js"></script>	
+	<script src="lib/socket.io.js"></script>
+	<script src="js/Utils.js"></script>
+	<script src="js/BerryUI.js"></script>
+	<title>Berry UI</title>
+</head>
+<body>
+	<div style="float:right;margin-top:-15px;margin-left:20px">
+		<div id="servers" style="height:60px;overflow-y:scroll;padding-right:5px;"></div>
+	</div>
+	<div style="float:right;margin-right:20px">
+		<button onclick="audioCtx=new (window.AudioContext || window.webkitAudioContext)();">audio</button>
+	</div>
+
+	<div style="float:left;">
+		<a href="javascript:app.readme();">
+			<img style="margin-right:10px;" title="read more about the Berry framework .." src="img/raspi.png"/>
+		</a>
+	</div>
+	<div id="alert" style="float:left;display:none"></div>
+	<div id='title' style="margin-left:40px;font-family:Arial;">?</div>
+	<hr style="margin-bottom:10px"/>
+	<div style="clear:both"></div>
+	<div id="hardwares"></div>
+</body>
+</html>

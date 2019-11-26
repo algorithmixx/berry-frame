@@ -1,0 +1,189 @@
+#alert {
+	display:			none;
+	border:				solid 1px red;
+	padding:			5px;
+	background:			#ffb;"
+}
+
+div.FrontPanel {
+	display:			inline-block;
+	position:			relative;
+    border:				solid 1px #555;
+    background-color:	#eed;
+    box-shadow:			0 0 10px  rgba(0,0,0,0.6);
+	margin-bottom:		15px;
+}
+
+div.hwDesc {
+	border:				solid 1px darkgray;
+	background-color:	lightyellow;
+	padding:			10px;
+	margin-bottom:		10px;
+}
+
+table.iface {
+	border:				1px solid black;
+	background-color:	#eee;
+	padding:			5px;
+}
+table.iface tr:nth-child(even) {
+	background-color:	#ddd;
+}
+table.iface th {
+	font-weight:		800;
+	padding-left:		10px;
+	padding-right:		5px;
+}
+table.iface td {
+	padding-left:		10px;
+	padding-right:		5px;
+}
+
+button.Button {
+	position:			absolute;
+	border:				solid 1px gray;
+	font-size:			14px;
+	text-align: 		center;
+	cursor: 			pointer;
+	border-radius:		6px;
+	box-shadow:			5px 5px #999;
+}
+
+.Action {
+	position:			absolute;
+	font-size:			14px;
+	text-align: 		center;
+	color:				darkblue;
+	cursor: 			pointer;
+	box-shadow:			5px 5px #999;
+}
+
+.Button:hover {
+	background-color: 	#3e8e41;
+}
+
+.Button:active {
+  background-color: 	#3e8e41;
+  box-shadow: 			3px 3px #666;
+  transform: 			translateY(4px);
+}
+
+div.Label {
+	position:			absolute;
+}
+
+div.LED {
+	position:			absolute;
+	border-radius:		10px;
+	min-width:			16px;
+	border:				solid 1px gray;
+	text-align: 		center;
+
+}
+
+div.Display {
+	position:			absolute;
+	border:				solid 1px gray;
+	padding:			3px;
+	border:				gray solid 2px;
+	background-color:	#f7f7f7;
+	font-family:		monospace;
+	white-space:		pre;
+}
+
+div.TextInput {
+	position:			absolute;
+	font-family:		monospace;
+	white-space:		pre;
+}
+
+div.WS2801 {
+	position:			absolute;
+	display:			inline-block;
+	border:				solid 2px darkgray;
+	vertical-align:		middle;	
+}
+
+div.WS2801_led {
+	vertical-align:		middle;
+	display:			inline-block;
+	border:				solid 1px gray;
+	background-color:	black;
+	color:				white;
+	border-radius:		16px;
+	font-family:		monospace;
+	padding:			3px;
+	width:				20px;
+	margin-left:		1px;
+	text-align: 		center;
+}
+
+div.MPU6500 {
+	position:			absolute;
+	padding-left:		3px;
+}
+div.MPU6500_bg {
+	display:			inline-block;
+	background-image:	linear-gradient(45deg, #e4e4e4 25%, transparent 25%), linear-gradient(-45deg, #e4e4e4 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #e4e4e4 75%), linear-gradient(-45deg, transparent 75%, #e4e4e4 75%);
+	background-size:	20px 20px;
+	background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+}
+div.Speakers {
+	position:			absolute;
+	border-radius:		3px;
+	padding-bottom:		3px;
+	border:				dashed 1px blue;
+	padding-left:		5px;
+}
+
+div.Microphone {
+	position:			absolute;
+	border-radius:		3px;
+	padding-bottom:		3px;
+	border:				dashed 1px red;
+	padding-left:		5px;
+}
+
+div.DS1820 {
+	position:			absolute;
+	border-radius:		5px;
+	border:				solid 1px red;
+	padding-left:		5px;
+	font-family:		monospace;
+	white-space:		pre;
+}
+
+.slidecontainer {
+	position:			absolute;
+	width: 100%;
+}
+
+.slider {
+	-webkit-appearance: none;
+	width:				100%;
+	background:			#d3d3d3;
+	outline:			none;
+	opacity:			0.7;
+	-webkit-transition:	.2s;
+	transition:			opacity .2s;
+}
+
+.slider:hover {
+  opacity: 1;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 25px;
+  height: 25px;
+  background: #4CAF50;
+  cursor: pointer;
+}
+
+.slider::-moz-range-thumb {
+  width: 25px;
+  height: 25px;
+  background: #4CAF50;
+  cursor: pointer;
+}

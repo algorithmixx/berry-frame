@@ -1,0 +1,31 @@
+# use sudo crontab -e
+# and add the following line to the crontab
+# @reboot /home/pi/berries/onreboot
+
+
+cd /home/pi/berries
+
+PATH=$PATH:/usr/local/bin:/sbin
+
+# start the monitoring script
+if test -e monitor.err ; then mv -f monitor.err monitor.err.old ; fi
+if test -e monitor.log ; then mv -f monitor.log monitor.log.old ; fi
+berry/bin/monitor 1>monitor.log 2>monitor.err &
+chmod 666 monitor.err monitor.log
+
+# start Master
+if test -e Master.err ; then mv -f Master.err Master.err.old; fi
+if test -e Master.log ; then mv -f Master.log Master.log.old; fi
+berry/bin/berry Master  1>Master.log 2>Master.err &
+chmod 666 Master.err Master.log
+chown pi:pi Master.log Master.err
+
+for berry in Hello Sword
+do
+	echo "starting $berry .."
+	# start $berry
+	if test -e $berry/$berry.err ; then mv -f $berry/$berry.err $berry/$berry.err.old; fi
+	if test -e $berry/$berry.log ; then mv -f $berry/$berry.log $berry/$berry.log.old; fi
+	berry/bin/berry $berry 1>$berry/$berry.log 2>$berry/$berry.err &
+	chmod 666 $berry/$berry.err $berry/$berry.log
+done

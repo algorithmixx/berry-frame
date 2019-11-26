@@ -1,0 +1,26 @@
+body {
+	margin:				0;
+	padding-left:		35px;
+	padding-right:		20px;
+	background-color:	#f5f5e5;
+	font-size:			110%;
+}
+h1,h2,h3,h4,h5,h6 {
+	font-family:		Arial;
+}
+
+pre {
+	background-color:	#dde;
+	border:				solid 1px #aac;
+	margin-left:		20px;
+	padding:			5px;
+}
+
+.hilight {
+	background-color:	#ffc;
+	border:				solid 1px #ff6;
+	margin-left:		80px;
+	margin-right:		60px;
+	margin-bottom:		20px;
+	padding:			5px;	
+}

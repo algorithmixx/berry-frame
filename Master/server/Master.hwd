@@ -1,0 +1,37 @@
+{
+	title:		"<h2>Berry - Master &nbsp; &mdash; &nbsp; Registration Service",
+	type:		"Master",
+	desc:		"A registration service for Berry apps.<br/>"
+				"Facilitates coordination of multiple apps and clients.",
+	port:		9000,
+	appClass:	"",
+	rev:		"1.0",
+	img:		"Master.png",
+	elms: [
+
+
+		// The front panel
+		// ===============
+		{	type:		"FrontPanel",
+			id:			"frontPanel",
+			name:		"front panel",
+			style: 		"width:800px;height:600px;background-color:#ffe;",
+		},
+		
+		// label
+		{
+			type:		"Label",
+			id:			"label",
+			name:		"<b>Manage Berry Applications<\/b> &nbsp; &nbsp; &nbsp; (<a target='reg' href='/reg?'>JSON list of registrations</a>)",
+			style:		"left:10px;top:10px",
+		},
+
+		// the server management area
+		{
+			type:		"Label",
+			id:			"manager",
+			name:		"<div id='manager'>..<\/div>",
+			style:		"left:10px;top:40px;width:760px;height:540px;overflow-y:scroll;background-color:#ffa;padding:10px;",
+		},
+	]
+}

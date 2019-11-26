@@ -1,10 +1,16 @@
 {
   "author": "Gero Scholz",
-    "bugs": {
+  "bugs": {
     "url": "https://github.com/algorithmixx/berry-frame/issues"
   },
   "dependencies": {
-    "node-getopt": "^0.3.2"
+    "ip": "^1.1.5",
+    "microtime": "^3.0.0",
+    "node-getopt": "^0.3.2",
+    "node-wav-player": "^0.1.0",
+    "node-wget": "^0.4.3",
+    "request": "^2.88.0",
+    "socket.io": "^2.3.0"
   },
   "deprecated": false,
   "description": "A framework for building Raspberry Pi applications with a web browser interface.",
@@ -22,7 +28,7 @@
     "API"
   ],
   "license": "ISC",
-  "main": "BerryFrame.js",
+  "main": "Berry.js",
   "name": "berry-frame",
   "repository": {
     "type": "git",
@@ -31,5 +37,5 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "version": "1.0.2"
+  "version": "1.0.3"
 }
