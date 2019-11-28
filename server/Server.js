@@ -58,54 +58,22 @@ class Server {
 		if (this.type=="Master") this.startableServers=appTypes;
 	} 
 
-	update(test) {
-		// downloads the latest berry.zip from a fixed URL
-		// and installs it over the currently running process
-		// if "test" : only update source files directly from development version on the same machine
+	update() {
+		// triggers npm update
 
-		Logger.log("Server       updating Berry ... "+(test?"TEST":""));
+		Logger.log("Server       updating package berry-frame ... ");
 
-		if (test) {
-			// generate ZIP file within local development master,
-			// copy to pwd and trigger installation
-			if (process.platform=="win32") {
-				const execSync = require('child_process').execSync;			
-				// produce a zip with the most recent source files
-				execSync("berry\\bin\\update_src.bat");
-				this.restart();
-			}
-		}
-		else {
-			// require("fs").unlinkSync("./berry.zip");
-			var wget = require('node-wget');
-			wget({
-				url: 'https://followthescore.org/berry/berry.'+(process.platform=="win32"?'win.':'')+'.zip',
-				dest: "./",
-			},function(err,data) {
-				if (err) { Logger.error(err); return; }
-				Logger.info("Server       downloaded berry.zip, "
-					+JSON.stringify(data.headers).replace(/.*content-length":"([0-9]+).*/,"$1")+ " Bytes");
-				// start with some delay as berry.zip might be blocked otherwise
-				setTimeout(theServer.install,1000);
-			});
-		}
+		const execSync = require('child_process').execSync;			
+		execSync("npm update berry-frame");
+		this.restart();
 	}
 	
-	install() {
-		// assumes that we have somehow received BERRY_HOME/berry.zip 
-		const fs = require('fs');
-		const execSync = require('child_process').execSync;			
-		if (process.platform == "win32") {
-			execSync('copy berry\\bin\\7z\\7z.* .');
-			execSync('.\\7z.exe x -y berry.win.zip');
-			execSync('del .\\7z.*');
-			
-			this.restart();
-		}
-	}
-
 	stop(wait) {
 		// unregister the server and exit from the running process
+		
+		// inform the application that we are going to stop
+		if (theHardware.appObject && theHardware.appObject.onStop) theHardware.appObject.onStop();
+			
 		if (isMissing(wait)) wait=1000;
 		var my=theServer;
 		var delay=0;
@@ -303,14 +271,14 @@ class Server {
 						theHardware.appObject.onStop(function() {
 							if 		(action.cmd=="stop") 		my.stop();
 							else if (action.cmd=="restart") 	my.restart();
-							else if (action.cmd=="update")		my.update(action.test);
+							else if (action.cmd=="update")		my.update();
 						});
 					}
 					else {
 						my.http.close();
 						if 		(action.cmd=="stop") 		my.stop();
 						else if (action.cmd=="restart") 	my.restart();
-						else if (action.cmd=="update")		my.update(action.test);
+						else if (action.cmd=="update")		my.update();
 					}
 				}
 				catch(err) {

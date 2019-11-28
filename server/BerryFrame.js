@@ -8,6 +8,7 @@ const isPresent 	= require("../utils/Logger.js").isPresent;
 
 const theServer 	= require("../server/Server.js").theServer;			// singleton instance
 const theHardware	= require("../hw_control/Hardware.js").theHardware;	// singleton instance
+const SystemInfo	= require("systeminformation");
 
 // =========================================================================================================
 
@@ -25,7 +26,7 @@ class BerryFrame {
 		// get current script name
 
 		this.scriptName	 = process.argv[1].replace(/.*[/\\]/,'').replace(/[.]js$/,'');
-		this.versionId	 = "1.0.4";
+		this.versionId	 = "1.0.6";
 		
 		// find known Berry application types and their default properties (description, port, rev, ..)
 		this.appTypes = this.findAppTypes();
@@ -33,12 +34,24 @@ class BerryFrame {
 		// parse command line arguments, create an instance var for each option
 		this.cmdLine = this.parseArgs();
 
+		if (this.cmdLine==null) {
+			this.checkInstallation();
+			return;
+		}
+		
 		// select the desired application type
 		this.appType = this.appTypes[this.cmdLine.argv[0]];
 		
 		// intro message
 		Logger.info("BerryFrame   "+JSON.stringify(this.cmdLine.argv)+" -- "+JSON.stringify(this.cmdLine.options));
 
+		// Operating system info
+		this.os = process.platform;
+		SystemInfo.system(function(data) {
+			if (data.manufacturer=="Raspi") this.os="raspi";
+			Logger.info("BerryFrame   SYSTEM = "+JSON.stringify(data));			
+		});
+		
 		// set logging level
 		Logger.level= this.logLevel;
 	}
@@ -87,6 +100,7 @@ class BerryFrame {
 		var getopt = 
 			require('node-getopt').create([
 				['h' , 'help',					'display this help'														],
+				['v' , 'version',				'display version ID'													],
 				['a' , 'api',					'display syntax help on the API of all supported hardware element types'],
 
 				['n' , 'name=',					'server name for identification, default: appType'						],
@@ -136,14 +150,20 @@ class BerryFrame {
 		// show API help and exit
 		if (isPresent(getopt.options["a"])) { 
 			Logger.info(JSON.stringify(theHardware.apiHelp(getopt.argv[0]),null,4));
-			process.exit(0);
+			return null;
 		}
 		
-		// if there are no arguments at all or if appType is missing: show help
+		// show versionId and exit
+		if (isPresent(getopt.options["v"])) { 
+			Logger.info("BerryFrame: version "+this.versionId);
+			return null;
+		}
+		
+		// if there are no arguments at all or if appType is missing: show help and exit
 		if (getopt.argv.length<=0) { 
 			Logger.info(getopt.getHelp());
 			Logger.error('"appType" required.');
-			process.exit(0);
+			return null;
 		}
 		
 		var appTypeName = getopt.argv[0];
@@ -151,7 +171,7 @@ class BerryFrame {
 		// check if appType is known
 		if (!this.appTypes[appTypeName]) {
 			Logger.error("Berry        unknown appType: "+appTypeName);
-			process.exit(-1);
+			return null;
 		}
 		// if port is missing: use default port of appType
 		if (isMissing(getopt.options["port"])) {
@@ -186,6 +206,8 @@ class BerryFrame {
 	load() {
 		// create devices and start processing
 		
+		if (this.cmdLine==null) return;
+		
 		// set default configuration
 		if (!theHardware.loadDescription(this.appType.name,this.name,this.revision,this.emulate)) return;
 
@@ -197,7 +219,55 @@ class BerryFrame {
 		theServer.start(this.cmd);
 		return;	// we never arrive here
 	}
-	
+
+	async checkInstallation() {
+		// the default installation only loads node_modules which are needed on all platforms
+		// on a Raspberry we need additional modules; if they are missing we load them via npm
+
+		if (require('os').platform=="win32") return;
+		try {
+			const sys = await (require('systeminformation').system());
+			if (sys.manufacturer=="Raspberry Pi Foundation") {
+				try {
+					require("onoff");	// if the module has been installed, everything is fine
+				}
+				catch(err) {
+					var childProc = require('child_process'); 
+					console.log(
+						'\n=================================================================================='+
+						'\n   BerryFrame:  Installing additional modules for the Raspberry Pi platform'+
+						'\n'+
+						'\n                Please be patient ...'+
+						'\n=================================================================================='+
+						'\n'
+					);
+					try {
+						childProc.spawn(
+							'npm',
+							[
+								"install",
+								"onoff@^5.0.0",
+								"node-aplay@^1.0.3",
+								"pi-spi@^1.2.1",
+								"raspi-i2c@^6.2.4",
+								"raspi-onewire@^1.0.1",
+								"raspi-pwm@^6.0.0",
+								"raspi-soft-pwm@^6.0.2"
+							],
+							{stdio:"inherit"}
+						);
+					}
+					catch(e) {
+						console.log(e);
+					}
+				}
+			}
+		}
+		catch (err) {
+			console.log(err);
+		}		
+	}
+		
 }
 
 // =========================================================================================================

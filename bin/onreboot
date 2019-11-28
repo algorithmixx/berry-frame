@@ -1,31 +1,30 @@
 # use sudo crontab -e
 # and add the following line to the crontab
-# @reboot /home/pi/berries/onreboot
+# @reboot /home/pi/berries/onreboot <your berry>
 
 
 cd /home/pi/berries
 
 PATH=$PATH:/usr/local/bin:/sbin
 
+mkdir -p log log/old
+rm -f log/old/* > /dev/null
+mv log/*.* log/old > /dev/null
+
 # start the monitoring script
-if test -e monitor.err ; then mv -f monitor.err monitor.err.old ; fi
-if test -e monitor.log ; then mv -f monitor.log monitor.log.old ; fi
-berry/bin/monitor 1>monitor.log 2>monitor.err &
-chmod 666 monitor.err monitor.log
+echo starting monitor ..
+./monitor 1>log/monitor.log 2>log/monitor.err &
+chmod 666 log/monitor.err log/monitor.log
 
 # start Master
-if test -e Master.err ; then mv -f Master.err Master.err.old; fi
-if test -e Master.log ; then mv -f Master.log Master.log.old; fi
-berry/bin/berry Master  1>Master.log 2>Master.err &
-chmod 666 Master.err Master.log
-chown pi:pi Master.log Master.err
+echo starting Master ..
+./berry Master  1>log/Master.log 2>log/Master.err &
+chown pi:pi log/Master.log log/Master.err
 
 for berry in $*
 do
 	echo "starting $berry .."
 	# start $berry
-	if test -e $berry/$berry.err ; then mv -f $berry/$berry.err $berry/$berry.err.old; fi
-	if test -e $berry/$berry.log ; then mv -f $berry/$berry.log $berry/$berry.log.old; fi
-	berry/bin/berry $berry 1>$berry/$berry.log 2>$berry/$berry.err &
-	chmod 666 $berry/$berry.err $berry/$berry.log
+	./berry $berry 1>log/$berry.log 2>log/$berry.err &
+	chmod 666 log/$berry.err log/$berry.log
 done

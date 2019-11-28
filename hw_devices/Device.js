@@ -92,6 +92,20 @@ class Display extends Device {
 	}
 	
 }
+Display.getApiDescription = function () {	
+	return [
+		{	cmd:"getValue",
+			effect:"returns the current contents of the display (array of text lines)"
+		},
+		{	cmd:"println",
+			args: [
+				{ name : "text",	meaning: "text line" },
+			],
+			effect:"appends one line of text"
+		},
+	];
+}
+
 
 // =========================================================================================================
 
@@ -127,8 +141,10 @@ class TextInput extends Device {
 TextInput.getApiDescription = function () {	
 	return [
 		{	cmd:	"setValue",
-			val:	"an arry of text lines",
-			effect:	"simulates a text input"
+			effect:	"simulates a text input",
+			args: [
+				{ name: "val", meaning: "a line of text" },
+			],
 		},
 	];
 }

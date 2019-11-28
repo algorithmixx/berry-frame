@@ -339,12 +339,8 @@ class BerryUI {
 		;
 		var controlButtons2="";
 		if (hardware.exclude.indexOf("U")<0 && hardware.exclude.indexOf("all")<0) controlButtons2+=
-			"<button title='UPDATE Berry framework and RESTART' onclick='app.sendAction("+hw+",{id:\"server\",cmd:\"update\",test:true});'>"+
+			"<button title='UPDATE Berry framework and RESTART' onclick='app.sendAction("+hw+",{id:\"server\",cmd:\"update\"});'>"+
 			"<span style='color:magenta;font-weight:700'>&#8659;</span></button>&nbsp;"
-		;
-		if (hardware.exclude.indexOf("R")<0 && hardware.exclude.indexOf("all")<0) controlButtons2+=
-			"<button title='RESTART Berry server' onclick='app.sendAction("+hw+",{id:\"server\",cmd:\"update\"});'>"+
-			"<span style='color:red;font-weight:700'>&#8634;</span></button>&nbsp;"
 		;
 		if (hardware.exclude.indexOf("S")<0 && hardware.exclude.indexOf("all")<0) controlButtons2+=
 			"<button title='STOP Berry server' onclick='app.sendAction("+hw+",{id:\"server\",cmd:\"stop\"});app.removeServer("+hw+");'>"+

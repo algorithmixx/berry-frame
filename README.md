@@ -40,7 +40,7 @@ and resource files to the client side.
 
 __berry-frame__ was written as a platform for teaching students the basics
 of programming embedded systems. It was designed to hide a lot of technical 
-issues so that the students can concentrate on the essentials of 
+issues so that the students could concentrate on the essentials of 
 application development.
 
 The traditional way of embedded systems development with languages
@@ -82,7 +82,7 @@ The _Hello berry_ is so simple that it only needs a hardware description file
 
 Try the _Hello berry_ : http://followthescore.org:9001
 
-The web UI contains a link the HWD file so that you see what was needed
+The web UI contains a link to the HWD file so that you see what was needed
 to build this _berry_.
 
 ### The _Dimmer berry_
@@ -100,72 +100,80 @@ the specific application logic. The UI has a link to show its source code.
 	
 ## Installation
 
+Change to the home directory of your project. We will call this directory
+BERRY_HOME from now on.
+
+In BERRY_HOME use ``npm`` to install __berry-frame__:
+
 ```
 npm install berry-frame
 ```
 
-Optionally you can create a file (suggested name: ``Berry.js``) which contains
-the following code:
+If you are on _Windows_: Copy the script ``node_modules\berry-frame\bin\berry.bat`` 
+to BERRY_HOME.
+
+If you are on the _Raspberry Pi_: Copy `` node_modules/berry-frame/bin/berry``
+to BERRY_HOME and make it executable.
+
+Now call ``berry`` (or ``./berry`` on the Raspi) to check if the installation works.
+You should see a _syntax help_ on how to start a _berry_.
+On the Raspi the _very first call_ will load additional hardware specific modules via ``npm``
+to complete the installation. Be patient, this will take some time. If you then call
+``./berry`` a second time it will show only the syntax help and it will complain about
+a missing argument (the type of the _berry_ to start).
+
+Instead of using the ``berry`` script you can also write a file named ``Berry.js``
+with the following code:
 ```javascript
 require('berry-frame');
 ```
+In that case you would call __berry-frame__ via ``node Berry (args...)``
 
-Now unzip one or more of the _sample berries_ into your development root, 
+
+Depending on the degree of automation you want, some more steps may be desirable to ..
++ .. start __berry-frame__ and your _berry_ directly after the Raspberry Pi has booted,
++ .. start a watch dog process (monitor) which will restart your _berry_ if something went wrong 
++ .. start a _Master berry_ which registers running _berries_ and facilitates interaction between them
+
+The online manual will tell you how to do this. For the moment we can skip these steps.
+
+
+## Install a sample _berry_
+
+Unzip one or more of the _sample berries_ into your development root, 
 which have been delivered together with __berry_frame__,
 e.g. ``node_modules/berry-frame/sample_berries/Hello.zip``. Now you should
 have a directory named ``Hello`` in your development root.
-
-Depending on the degree of automation you want, some more steps may be necessary
-+ start __berry-frame__ directly after your Raspberry PI has booted,
-+ start a watch dog process (monitor) 
-+ start a _Master berry_ which registers running _berries_ and facilitates interaction between them
-The online manual will tell you how to do this.
-
-Test your installation by calling ``node Berry`` (if you wrote your own ``Berry.js``).
-You should see some _syntax help_ on how to start the server for a _berry_.
-
-As an alternative, you can also call ``node node_modules/berry-frame/Berry``.
-In that case you do not need to write your own ``Berry.js`` file.
- 
-Or you call ``node_modules/berry-frame/bin/berry`` which is one-liner script
-to invoke _node_ in the way described above.
-
-We recommend to copy (or link) that script (``berry`` or ``berry.bat`` under ``Windows``)
-to your development root.
 
 The directory tree of a typical installation will then look like this:
 
 ````
 (development root)
-    berry                       (Unix)
+    berry                       (Unix, executable)
     berry.bat                   (Windows)
-    log
-        Master.log              (log file for Master)
-        Master.err              (error file for Master)
-        monitor.log             (log file for the monitor)
-        monitor.err             (error file for the monitor)
     node_modules
-        ...
-        berry-frame
-            ...
-    YourBerry
+        ...                     (other modules)
+        berry-frame             (the __berry-frame__ module)
+            ...                 (.. with all its files)
+        ...                     (other modules)
+    package-lock.json
+    log
+        ...                     (log files for running berries and monitor) 
+    Hello                       (your _berry_)
         audio                   (media resources for client and server)
         img                     (images for the web client)
-        server
-            YourBerry.hwd       (JSON hardware description of your berry)
-            YourBerry.js        (javascript source for your berry)
-            YourBerry.log       (log file for YourBerry)
-            YourBerry.err       (error file for YourBerry)
+        server                  (server resources of your _berry_)
+            Hello.hwd           (JSON hardware description of your _berry_)
+            Hello.js            (optional javascript source for your _berry_)
 ````
 
 ## Starting a _berry_
 
-Assuming that you copied the small ``berry`` script to your development root,
-you can start the server for your _berry_ (e.g. the ``Hello`` _berry_) like this:
+Now let us start the server for the _Hello berry_ like this:
 
-``berry Hello > Hello/Hello.log 2>Hello/Hello.err &``
+``./berry Hello > Hello/Hello.log 2>Hello/Hello.err &``
 or
-``berry Hello -l1``
+``./berry Hello -l1``
 
 The first call is for production use of your _berry_. 
 It redirects stdout and stderr to files and executes the server 
@@ -177,17 +185,20 @@ the communication that will be happening between server and client(s).
 When you run your _berry_ in production you should avoid this option 
 as it may slow down your application and will potentially produce a lot of output.
 
+Open the browser on your machine with ``http://localhost:9001`` and you should
+see the web user interface.
+
 
 ## Online Manual
 
-The Online Manual contains more information on __berry-frame__ and hints
+The Online Manual contains more information on __berry-frame__ and some hints
 on how to design your own _berries_.
 
-To access the online manual start a _berry_ and then click in the browser
-on the red raspberry icon in the top left corner.
+To access the online manual start click on the red raspberry icon in the 
+top left corner of the web UI.
 
 The manual is written in markdown syntax and can be found under
-_berry-frame/client/readme.html_
+``node_modules/berry-frame/client/readme.html``.
 
 
 ## License: ISC

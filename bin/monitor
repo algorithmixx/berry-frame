@@ -1,0 +1,24 @@
+
+echo "Starting an endless loop: Wait for a file named 'restart.cmd' and execute it .."
+
+echo "-----------------------------------------------------------"
+echo "this script must be started from your 'berries' directory !"
+echo "-----------------------------------------------------------"
+
+rm -f restart.cmd
+
+while [ true ]
+do
+	while [ ! -f ./restart.cmd ]
+	do
+		sleep 5
+	done
+
+	echo restarting ..
+	date
+	chmod 777 restart.cmd
+	./restart.cmd &
+	sleep 5
+	rm restart.cmd
+	
+done
