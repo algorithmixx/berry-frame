@@ -330,24 +330,24 @@ class BerryUI {
 
 		var controlButtons1="";
 		if (hardware.exclude.indexOf("rs")<0 && hardware.exclude.indexOf("all")<0) controlButtons1+=
-			"<button title='RESTART Berry Server' onclick='app.sendAction("+hw+",{id:\"server\",cmd:\"restart\"});app.disableServer("+hw+");'>"+
+			"<button title='RESTART berry-frame Server' onclick='app.sendAction("+hw+",{id:\"server\",cmd:\"restart\"});app.disableServer("+hw+");'>"+
 			"<span style='color:blue;font-weight:700;'>&#8635;</span></button>&nbsp;"
 		;
 		if (hardware.exclude.indexOf("rb")<0 && hardware.exclude.indexOf("all")<0) controlButtons1+=
-			"<button title='REBOOT Raspi' onclick='app.sendAction("+hw+",{id:\"hardware\",cmd:\"reboot\"});app.disableServer("+hw+");'>"+
+			"<button title='REBOOT Raspberry Pi computer' onclick='app.sendAction("+hw+",{id:\"hardware\",cmd:\"reboot\"});app.disableServer("+hw+");'>"+
 			"<span style='color:blue;font-weight:700;'>&#8635;&#8635;</span></button>&nbsp;"
 		;
 		var controlButtons2="";
 		if (hardware.exclude.indexOf("U")<0 && hardware.exclude.indexOf("all")<0) controlButtons2+=
-			"<button title='UPDATE Berry framework and RESTART' onclick='app.sendAction("+hw+",{id:\"server\",cmd:\"update\"});'>"+
+			"<button title='berry-frame, version "+hardware.version+",\n click to UPDATE (via npm) and RESTART!' onclick='app.sendAction("+hw+",{id:\"server\",cmd:\"update\"});'>"+
 			"<span style='color:magenta;font-weight:700'>&#8659;</span></button>&nbsp;"
 		;
 		if (hardware.exclude.indexOf("S")<0 && hardware.exclude.indexOf("all")<0) controlButtons2+=
-			"<button title='STOP Berry server' onclick='app.sendAction("+hw+",{id:\"server\",cmd:\"stop\"});app.removeServer("+hw+");'>"+
+			"<button title='STOP berry-frame server' onclick='app.sendAction("+hw+",{id:\"server\",cmd:\"stop\"});app.removeServer("+hw+");'>"+
 			"<span style='color:red;font-weight:700'>x</span></button>&nbsp;"
 		;
 		if (hardware.exclude.indexOf("X")<0 && hardware.exclude.indexOf("all")<0) controlButtons2+=
-			"<button title='SHUTDOWN Raspi' onclick='app.sendAction("+hw+",{id:\"hardware\",cmd:\"shutdown\"});app.removeServer("+hw+");'>"+
+			"<button title='SHUTDOWN and HALT Raspberry Pi computer' onclick='app.sendAction("+hw+",{id:\"hardware\",cmd:\"shutdown\"});app.removeServer("+hw+");'>"+
 			"<span style='color:red;font-weight:700;'>xx</span></button>&nbsp;"
 		;
 

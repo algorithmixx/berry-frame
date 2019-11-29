@@ -5,5 +5,6 @@ body {
 }
 #hwd {
 	white-space:		pre;
+	tab-size:			4;
 	font-family:		monospace;
 }

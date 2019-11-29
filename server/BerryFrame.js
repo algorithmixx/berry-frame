@@ -26,7 +26,7 @@ class BerryFrame {
 		// get current script name
 
 		this.scriptName	 = process.argv[1].replace(/.*[/\\]/,'').replace(/[.]js$/,'');
-		this.versionId	 = "1.0.6";
+		this.versionId	 = "1.0.7";
 		
 		// find known Berry application types and their default properties (description, port, rev, ..)
 		this.appTypes = this.findAppTypes();
