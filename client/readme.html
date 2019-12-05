@@ -106,8 +106,8 @@
 		10) <a href="#c10"> Installation					</a><p/>
 		11) <a href="#c11"> Sample Berries					</a><p/>
 		12) <a href="#c12"> Creating a Berry				</a><p/>
-		13) <a href="#c13"> Author							</a><p/>
-		14) <a href="#c14"> License and Copyright			</a><p/>
+		13) <a href="#c13"> License and Copyright			</a><p/>
+		14) <a href="#c14"> Security Hints					</a><p/>
 		
 	</div>
 	
@@ -641,14 +641,10 @@ Action: {
 
 	Within BERRY_HOME call ``npm install berry-frame`` and wait until the process has finished.
 	
-	The copy the binaries for ``berry``, ``monitor`` and ``onreboot`` from ``node-Modules/berry-frame/bin``
+	Then copy the binaries for ``berry``, ``monitor`` and ``onreboot`` from ``node_modules/berry-frame/bin``
 	to BERRY_HOME and make them executable (on Windows copy the resp. ``*.bat`` files).
 	
-	Call ``./berry`` (on the Raspi) and wait until it has installed the additional modules
-	which are only needed on the Raspberry Pi computer.
-
 	__berry-frame__ can (and should!) be installed on _Windows_ and on your _Raspberry Pi_.
-	
 	Start with the installation on Windows. It is easier and faster and
 	you will need it for the development of your _berries_ anyway.
 
@@ -657,10 +653,10 @@ Action: {
 
 	<img src="http:img/install.jpg" style="float:right;width:200px;margin-left:10px"/>
 
-	Unzip one or more of the sample_berries which come together with __berry-frame__
+	Unzip the _Hello sample berry_ (from ``node_modules/berry-frame/sample_berries/Hello.zip``)
 	into BERRY_HOME.
 		
-	Within BERRY_HOME call ``berry(.bat)`` and you should see a lengthy explanation
+	Within BERRY_HOME now call ``berry(.bat)`` and you should see a lengthy explanation
 	on how to start __berry-frame__ from the command line.
 	You will see chapters on Purpose, Version, Usage, Option, avialable _berries_
 	and some Notes. The text will end with an error message because we did not 
@@ -669,6 +665,7 @@ Action: {
       Now let us call ``berry Hello -l 1"
 	
 	This starts the _Hello Berry_ and activates Logging.
+	
 	When the script starts, the first output line will contain the port number;
 	in our case: 9001. The other lines of the Log tell you that __berry-frame__ found
 	and parsed ``Hello.hwd``, assembled the modules necessary for the hardware
@@ -688,12 +685,15 @@ Action: {
 	within the internet. Instead it will use the IP 127.0.0.1 which is by convention
 	always the IP of the local machine where the browser is running.
 	
+	Note: If you add the option ``-b`` or ``--browse`` when starting the _server process_,
+	the default browser of your system will automatically open the correct URL.
+	
 	The browser will show a web page like this:
 	
 	<img src="img/screenHello.png"/>
 	
-	But what happened to the command line window with the server? It was flooded
-	with a lot of text! __Scroll up__ in the terminal window and try to understand what happened.
+	But what happened to the command line window? It was flooded with a lot of messages! 
+	__Scroll up__ in the terminal window and try to understand what happened.
 	
 	You will see:
 	* First it got an empty HTTP request from the browser which it interpreted as a request for ``index.html``
@@ -731,9 +731,10 @@ Action: {
 	  
 	* The browser detected the _button down_ event, sent it as a socket message to the
 	  server as you can see in the server log lines.
-	* Then the server talked to the (virtual) "Hardware" which switched the LED #15 to "ON"
+	* Then the server talked to the virtual hardware (note that we are on Windows
+	  where there is no such thing like a real GPIO) which switched the LED #15 to "ON"
 	  (#15 is the GPIO number to which the LED is connected; note that GPIO #15
-	  sits on physical pin #10, as the pinout told us).
+	  sits on physical pin #10, as the pinout tells us).
 	* Now the server sends a broadcast to all clients with LED "led" having a value of 1.
 	* Your client gets the message and switches the LED to "green" because it learnt from the
 	  former hardware setup message that the LED has a green color.
@@ -772,6 +773,8 @@ Action: {
 
 ### 10.2) Installation and Test on the Raspberry Pi
 
+#### 10.2.1) Prepare SD card
+
 	This chapter describes the installation from scratch. If you have your Raspi already up
 	and running you may want to skip the first parts.
 
@@ -780,13 +783,14 @@ Action: {
 	to use the LAN connection at least during installation as it is probably more stable and has 
 	better performance.
 
-      As usual you start on a Windosw PC to prepare the SD card:
+      As usual you start on a Windows PC to prepare the SD card:
 	
 	* download and install __Etcher__, __putty__ and __filezilla__ (or another ftp utility)
 	* download __Raspbian lite__ from https://www.raspberrypi.org/downloads/raspbian/
 	* unzip the download
-	* use Etcher to copy the unzipped img file to SD card
-	* add an empty file named "ssh" to root partition of the SD card
+	* use Etcher to copy the unzipped img file to the SD card
+	* release the SD card drive, remove the card and re-insert it; you should then see a drive called ``boot``
+	* add an empty file named "ssh" to the boot device (which is the root partition of the SD card)
 	* [WiFi] add the file "wpa_supplicant.conf" to the root partition of the SD card. EXAMPLE:
 	```
     country=DE # Your 2-digit country code
@@ -797,39 +801,54 @@ Action: {
         key_mgmt=WPA-PSK
     }
 	```
+
+#### 10.2.2) Initial configuration
  
 	* [WiFi] make sure you have a Raspi with built-in WiFi or use a Wifi USB stick
 	* [LAN] connect the RJE45 jack to your local network
 
-      Put the SD card into the Raspi and switch power on.
+    __Put the SD card into the Raspi and switch power on.__
 
 	* Stay on the PC and **connect to the Raspi via putty**
-	* use the symbolic name RASPBERRYPI or search in your network for that name and note the IP
+	* Use the symbolic name RASPBERRYPI or search in your network for that name and note the IP
 	  that was assigned to it by your network infrastructur.
 	* Login with ``putty`` as user "pi" with password "raspberry".
 	* call ``sudo raspi-config`` to configure localization, hardware interfaces, network name and other items
-	* also select "expand filesystem" form the "advanced options"
-	* if you chose to expand the file system you should reboot the Raspi and reconnect via putty
+	* you may also want to change the password
+	* also select "expand filesystem" from the "advanced options"
+	* close the config tool, reboot the Raspi and reconnect via putty
 
 	* update and upgrade your system: ``sudo apt-get update`` then ``sudo apt-get upgrade`` then again ``sudo apt-get update``
+	
+	* [WiFi] create a file named ``wifi_restart`` in /home/pi with the following contents:
+````
+    #!/bin/bash
+    ping -c2 8.8.8.8 > /dev/null
+    if [ $? != 0 ]
+    then
+        ip link set wlan0 down
+        ip link set wlan0 up
+    fi
+````
+	Make the file executable (``chmod +x wifi_restart``) and make sure that this file 
+	will be started regularly, say every two minutes, 
+	calling ``sudo crontab -e`` and adding ``*/2 * * * * /home/pi/wifi_rebooter``
 
-	* ``sudo chmod +s /sbin/shutdown`` This step will allow _berries_ to shutdown the Raspi.
+	The last step is necessary to make sure that your Raspi will regularly try to re-connect
+	to the WiFi network after it lost connection.
 	
-      Install __wiringPi__ and (if you wish) __Apache__
-	
-	* ``sudo apt-get install wiringpi``
-	* ``sudo apt-get install apache2 php libapache2-mod-php``
-	* ``cd /var/www/html``
-	* ``sudo chown pi:pi . *``
- 
-      Now check if you see the Apache welcome page when calling your Raspi from the browser of your PC.
-	
-	Please note that a web server like Apache is _NOT REALLY NEEDED_ for Berry.
-	If you do not install Apache you can run your _berry_ application on port 80
-	which may be quite comfortable for the user and which is also a safe way
-	to avoid problems with firewalls of network components.
 
-      Now it is time to install Node.js
+#### 10.2.3) Install some __basic tools__
+	
+      Install an __ftp server__ so that you can easily transfer files from the PC to the Raspi.
+	
+	* ``sudo apt-get install proftpd``
+	* Open your ftp client on Windows and connect to the raspberry pi as user "pi"
+
+      Install __wiringPi__
+	``sudo apt-get install wiringpi``
+
+      Install __node and npm__
 
 	Please note: If you have a Raspi Zero you have an armv61 processor.
 	In that case you should install directly from the "dist" directory of nodejs.org the version 9.7.1 for armv61
@@ -838,68 +857,87 @@ Action: {
     tar -xzf node-v9.7.1-linux-armv6l.tar.gz
     sudo cp -r node-v9.7.1-linux-armv6l/* /usr/local/
 ````
-	If you have a newer processor you can use ``apt`` to get the latest version of nodejs and npm:
+	Then remove the tar file and the unpacked directory which were created in the pwd by the above commands.
+	
+	If you have a __newer processor__ you can use ``apt`` to get the latest version of nodejs and npm:
 	* ``sudo apt-get install nodejs npm``
-	
-	Install an __ftp server__
-	* ``sudo apt-get install proftpd``
-	* Open your ftp client on Windows and connect to the raspberry pi as user "pi"
-	* this will help you later to transfer the sources of your _berry_ to the Raspi.
-	
+
+
+#### 10.2.4) Install __berry-frame__		
+
 	Create you BERRY_HOME directory, e.g. ``/home/pi/berries``
 	
-	Install __berry-frame__ via ``npm install berry-frame``
+	* Install __berry-frame__: ``npm install berry-frame``
 	
-	Copy the binaries (berry, monitor, onreboot) to BERRY_HOME and make them executable.
+	* copy the following two binaries (``berry`` and ``onreboot``)
+	from ``node_modules/berry-frame/bin/`` to BERRY_HOME and make them executable.
 
-	Call ``./berry`` and wait until the second part of the installation has completed.
+	* call ``./berry`` and __wait until the second part of the installation has completed__.
+	This can take several minutes.
 
- 	Call ``./berry`` again and you should only see the syntax help.
+	* Call ``./berry`` again and you should only see the syntax help.
 
-	Look into ``onreboot``, adapt it to your neds and call "sudo crontab -e";
+	* ``sudo chmod +s /sbin/shutdown`` This step will allow _berries_ to shutdown the Raspi.
+
+	* Look into ``onreboot``, adapt it to your neds and call "sudo crontab -e";
 	choose the "nano" editor and add the following line to the end of sudo´s crontab:
-      ``@reboot /home/pi/berries/onreboot <your Berrie>``
-	* start the monitor if you want: ``./monitor &``
-	* Configure your hardware and make sure the HWD file fits the real hardware.
-	* start your app with logging: ``./berry/ <your berry> -l 1 &``
-	* or without logging: ``./berry <your berry>``
-	* Use 'Hello' instead of your own App if you want to make sure that the installation is working.
+      ``@reboot /home/pi/berries/onreboot Hello``  
+	Instead of ``Hello`` you should use the name of your own _berry_ once you created one.
 
 
+#### 10.2.5) Play with the _Hello berry_
+
+	* Now look for ``node_modules/berry-frame/sample_berries/Hello.zip``
+	and __unzip__ it into your BERRY_HOME directory so that you get a directory named
+	``Hello`` directly below BERRY_HOME.
+
+	* Start the _Hello berry_ with logging activated: ``./berry Hello -l 1``
+	The server will start and your terminal will be blocked by the running process
+	(unless you started it in the background as ``./berry Hello -l 1 &``).
+	
+	* Now open a browser on your PC at port 9001 (this is the port used for the ``Hello`` _berry_).
+	``http://my_raspberry_pi:9001  
+	Instead of 'my_raspberry_pi' you must use the IP addresse or the symbolic network name
+	of your Raspi.
+	
+	The terminal window in ``putty`` will show the traffic between the server and the web client.
+	
+	You can close the server by typing CTRL-C in the server window or by clicking on the red "x"
+	in the web client user interface.
+	
 	<img src="http:img/samples.jpg" style="float:right;width:200px;margin-left:10px"/>
 		
 ## <a name="c11"/> 11) SAMPLE BERRIES
 
 ### Hello
-      Light the LED while the button is held down.
-	The most basic Berry one can think of. That´s why it is called 'Hello (World)'.
-	
-### Circle
-      A nice game where circularly arranged buttons control corresponding lights.
-	This a simple extension of ``Hello``. Change the assignment between buttons
-	and LEDs, add/remove a button etc. to understand the mechanics of a HWD file.
-	
-### Dimmer
-      Use a simple push button to dim a LED
-	Useful as a tutorial. Introduces the concept of application specific Javascript code
 
-### Weather
-      Read a temperature sensor and trigger alarms
-	Introduces a sensor which can continually deliver values.
-	Shows how to establish automated server-side sensor polling by HWD declarations.
-	Could be extended to more sensors.	
-		
+	The __Hello berry__ _lights a LED while a button is being held down._
+	
+	This is the most basic _berry_ one can think of. That´s why it is called 'Hello (World)'.
+	
+	Play with it, adding more buttons and lights.
+
+### Berry Shop
+
+	More free sample _berries_ are offered for download at
+	<a target="shop" href="https://followthescore.org/berry">https://followthescore.org/berry</a>
+
+	_Berries_ from the shop can be installed vie ``berry -i name`` where _name_ is the 
+	name of the _berry_ you want to install. The installer will not overwrite a _berry_
+	which already exists in BERRY_HOME.
+
+
 	<img src="http:img/aBerry.png" style="float:right;width:200px;margin-left:10px"/>
 
 ## <a name="c12"/> 12) CREATING A BERRY
 
-	We recommend to start working under Windows. Once your _berry_ runs in the emulation
+	We recommend to start working under __Windows__. Once your _berry_ runs in the emulation
 	you transfer the files of your _berry_ to the Raspi and execute it there.
 	
 	
 ###	12.1) Decide on the hardware and the functionality of your _berry_
 
-	We want to have a push button and a LED. The LED shall be ON while the button is held down.
+	We want to have a push button and a LED. The LED shall be ON while the button is being held down.
 	It shall be OFF while the button is UP.
 	
 	As this is the most basic application we can think of, let us call it "Hello".
@@ -911,20 +949,23 @@ Action: {
 	If you now have a web client which connects to both "Hello" _berries_ we
 	would like to have a separate NAME for each INSTANCE.
 	
-	``berry/bin/berry Hello -n World``  
+	``berry/bin/berry Hello -p 9001 -n World``  
 	will create an instance of `Hello` named `World`.
 	
-	`berry/bin/berry Hello -n Moon`  
+	`berry/bin/berry Hello -p 9002 -n Moon`  
 	will create another instance of `Hello` named `Moon`.
 	
+	As we are running both instances of ``Hello`` on the same raspberry pi computer
+	wen must assign different _names_ and _ports_ to them (see the ``-p`` cmdline option of ``berry``).
 	
-### 12.2) Describe your configuration in a HWD file
+	
+### 12.2) Describe your hardware configuration in a HWD file
 
 	Create the new subdirectory ``Hello`` under your "berries" home directory.
 	Create a HWD config file in ``Hello\server\Hello.hwd``.
-	Decide on the port number to use and put that number into the HWD at the ``port`` property.
+	Decide on the default port number to use and put that number into the HWD at the ``port`` property.
 	
-	To make life easy for you we have already provided a 
+	To make life easier for you we have already provided a 
 	<a href="/app/Hello/server/Hello.hwd" target="hwd">file named Hello.hwd</a>.
 	
       Read that file carefully. Try to add another button and another LED!
@@ -938,7 +979,9 @@ Action: {
 	Note that the name of this image (without path) is referenced in the HWD file.
 
 ### 12.4) Develop your application logic
-	In this simple exampe we do not need that.
+	In this simple exampe we do not need that because the HWD syntax allows us to link the
+	LED directly to the action of the PUSH BUTTON. In a realistic application you will have
+	to write your own code, of course.
 	
 ### 12.5) Start your _berry_ on Windows
 
@@ -948,6 +991,7 @@ Action: {
 	``http://localhost:9001´´
 
 ### 12.6) Improve your _berry_
+	Start the ``node_modules/berry-frame/bin/monitor.bat`` script in the background.
 	Change the HWD or your JS applicatiion code. Then press the blue button in the client.
 	The client will tell the server to terminate and restart. __Only after the restart__ the
 	server will load your changed code and you see the effect.
@@ -956,30 +1000,45 @@ Action: {
 
 	If everything runs fine in the emulation, copy your _berry_ into the BERRY_HOME
 	directory on the Raspberry Pi (using ftp)) and test it there. 
-	Don´t forget to start the __monitor__.
+	Make sure the __monitor__ is running on the Raspberry Pi as well.
+	(It may have been started already during the boot phase).
 	
 	If you make changes to the code or to the HWD file you can use the blue RESTART button in 
-	the Web UI to restart the server of your _berry_ (if the monitoring script is running).
+	the Web UI to restart the server of your _berry_.
 	
 	If you keep your master version on Windows you must make sure that a changed file
 	is transferred to the Raspi before you execute it there.
 
 	Once everything seems ok you should also provide a ZIP file for your _berry_ so that
 	interested users can download it and duplicate it onto their machines.
-	The script ``berry\bin\zip_berries.bat`` will help you in creating the ZIP.
 
-## <a name="c13"/> 13) AUTHOR
+
+## <a name="c13"/> 13) LICENSE and COPYRIGHT
+
+	Copyright 2019 Gero Scholz.
 	<a href="mailto:gero.scholz@gmail.com">Gero Scholz</a>
 
-
-## <a name="c14"/> 14) LICENSE AND COPYRIGHT
-	Copyright 2019 Gero Scholz.
-
 	This program is free software; you can redistribute it and/or modify it
-	under the terms of either: the GNU General Public License as published
-	by the Free Software Foundation; or the Artistic License.
+	under the terms of either: the ISC License.
 
-	See http://dev.perl.org/licenses/ for more information.
 
+## <a name="c14"/> 14) SECURITY HINTS
+
+	As mentioned above, __berry-frame__ does not come with any specific
+	protections against malicious people or bots trying to attack your system.
+	If you start the ``onreboot`` script from within ``crontab`` without ``runuser``
+	precautions it will run with root privileges (which seems to be technically
+	necessary for hardware PWM but not for any other peripheral devices).
+	
+	If you do not use the command line option ``x`` to exclude certain UI options
+	the generic client will allow the user to shutdown or reboot the raspberry pi
+	computer. While this may be acceptable in some environments you might want
+	to avoid this in others.
+	
+	If you did not change the password for user ``pi`` many people and bots 
+	will guess it easily.
+	
+	Do not expose your Raspi to the internet unless you know what you are doing!
+		
 </div></body>
 </html>

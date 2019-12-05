@@ -467,14 +467,14 @@ class BerryUI {
 			else if (elm.type=="Button" || elm.type=="Action") {
 				if (elm.color) elm.style+=";background-color:"+elm.color+";";
 				var target=null;
-				if (elm.target) {
-					if 		(elm.target=="app") 		target={id:"app",type:"App"};
-					else if (elm.target=="api")			target={id:"api",type:"API"};
-					else if (elm.target=="hardware")	target={id:"hardware",type:"Hardware"};
+				if (elm.elm) {
+					if 		(elm.elm=="app") 		target={id:"app",type:"App"};
+					else if (elm.elm=="api")		target={id:"api",type:"API"};
+					else if (elm.elm=="hardware")	target={id:"hardware",type:"Hardware"};
 					else {					
-						target = hardware.elms[elm.target];
+						target = hardware.elms[elm.elm];
 						if (!target) {
-							alert("There is no hardware device with id='"+elm.target+"'");
+							alert("There is no hardware device with id='"+elm.elm+"'");
 							target=null;
 						}
 					}
@@ -683,7 +683,7 @@ class BerryUI {
 	sendTextInput(hw,id) {
 		var elm=app.hardwares[hw].elms[id];
 		var value=$("#hw_"+hw+"_"+id+" textarea").val();
-		app.sendAction(hw,{id:elm.target,cmd:elm.cmd,arg:value});
+		app.sendAction(hw,{id:elm.elm,cmd:elm.cmd,arg:value});
 	}
 	
 	api(hw,id,cmd) {

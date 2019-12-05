@@ -35,7 +35,7 @@ class Server {
 	constructor() {
 	} 
 
-	configure(appTypes,appType,name,rev,port,master,exclude) {
+	configure(appTypes,appType,name,rev,port,master,exclude,browse) {
 		// the behavior of a server depends on being of type=="server" or "master"
 		
 		
@@ -47,7 +47,8 @@ class Server {
 		this.port		= port;									// the port to be used
 		this.master		= master;								// the addresse of the master
 		this.baseDir	= __dirname+'/..';						// the directory above the client with (HTML,CSS,images,JS)
-		this.exclude	= exclude;
+		this.exclude	= exclude;								// disable admin-like client UI features
+		this.browse		= browse;								// open the site in that browser after startup
 		
 		theHardware.exclude(this.exclude);	// optionally exclude certain client features like "reboot Raspi" etc
 
@@ -114,9 +115,10 @@ class Server {
 		// restart the application
 		Logger.info("Server       restarting ..",process.argv);
 		const fs=require('fs');
-		fs.writeFile("./restart.cmd",'"'+process.argv.join('" "')+'"',function(err) {
-			if(err) Logger.error(err);
-		});
+		fs.writeFile("./restart.cmd","@rem "+new Date().toString()+"\n@"
+			+'"'+process.argv.join('" "')+'"'+"\n",
+			function(err) { if(err) Logger.error(err); }
+		);
 		theServer.stop(1000);
 	}
 	
@@ -190,6 +192,11 @@ class Server {
 		}
 		
 		
+		// open the local default browser if requested (useful primarily for tests under Windows)
+		if (this.browse) {
+			require('child_process').exec("rundll32 url.dll,FileProtocolHandler http://localhost:"+this.port);
+		}
+			
 		// invoke the startup function of the application object;
 		// if we have initialActions to be performed, pass a function to the application object
 		// which will allow it to perform those actions
@@ -208,10 +215,6 @@ class Server {
 			if (initialActions!="") this.performAction(initialActions.split(";"));
 		}
 		
-		// delete the restart file
-		// this is actually being done in the monitor demon script
-		// const fs=require('fs');
-		// if (fs.existsSync("restart.cmd")) fs.unlinkSync("restart.cmd");
 	}
 	
 	performAction(actions) {
@@ -359,8 +362,8 @@ class Server {
 					target.dev.blink(action.interval||500,action.ratio||50,action.duration,action.cycles||3);
 					return {type:"LED",id:target.id,state:"blinking"};
 				}
-				if (this.can(socket,"LED",target.id,["toggle"],action.cmd)=="ok") {
-					target.dev.toggle();
+				if (this.can(socket,"LED",target.id,["toggle","on","off"],action.cmd)=="ok") {
+					target.dev[action.cmd]();
 					return {type:"LED",id:target.id,state:target.dev.getValue()};
 				}
 				else if (this.can(socket,"LED",target.id,["getValue"],action.cmd)=="ok") {
@@ -396,7 +399,7 @@ class Server {
 					// issuing a button press command will change the signal of the associated LED (see Berry.js)
 					// this change will in turn trigger an interrupt; as a consequence the changed state
 					// will be transferred to all connected clients
-					Logger.log("Server       Button "+target.id+ " -- "+action.state);
+					// Logger.log("Server       Button "+target.id+ " -- "+action.state);
 					target.dev.press(action.state);
 					return {type:"Button",id:target.id,state:action.state};
 				}
@@ -506,9 +509,10 @@ class Server {
 		// where it hopefully will be picked up by the monitor
 		Logger.info("Server       starting berry "+type+": "+name);
 		const fs=require('fs');
-		fs.writeFile("./restart.cmd","node node_modules/berry-frame/Berry -n "+name+" "+type,function(err) {
-			if(err) Logger.error(err);
-		});
+		fs.writeFile("./restart.cmd","@rem "+new Date().toString()+"\n@"
+			+"node node_modules/berry-frame/Berry -n "+name+" "+type+"\n",
+			function(err) { if(err) Logger.error(err); }
+		);
 		return {msg:"starting berry, type="+type+", name="+name};
 	}
 

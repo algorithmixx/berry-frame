@@ -13,7 +13,7 @@ with the application logic itself but with technical issues like accessing
 a certain device or handling communication between your Raspi and a web client.
 
 __berry-frame__ offers a way to separate all this generic technical stuff from the
-real application logic. It has a _server part_ running under _node.js_ on the 
+core application logic. The framework has a _server part_ running under _node.js_ on the 
 _Raspberry Pi_ and a _client part_ running within the _browser_. The server part
 includes a http service listening at a configurable port. The server establishes
 web socket connections to the clients and it also offers a REST-like API.
@@ -26,8 +26,8 @@ __berry-frame__ is not a "graphical tool for drawing your programming logic".
 
 __berry-frame__ expects a structured description of your hardware peripherals 
 in JSON-syntax ('``HWD``'). The ``HWD`` notation also defines some standard 
-rules for visual representation of hardware elements in the browser UI 
-and for the general flow of information between UI elements and 
+rules for _visual representation_ of hardware elements in the browser UI 
+and for the general _flow of information_ between UI elements and 
 hardware devices connected to the Raspi´s GPIO ports (or being emulated).
 
 As soon as things get more complex, you will have to provide some Javascript
@@ -61,13 +61,14 @@ run the application and run a browser (for a local UI) at the same time.
 With the availability of drivers for GPIO access in Javascript it 
 became possible to combine hardware access, application logic and 
 a web front end more elegantly than ever. Using the same language
-on client and server is another advantage.
+on client and server is an extra advantage.
 
 Experts will understand that this approach is not suitable for
 extremely time-critical tasks, for hard realtime requirements
 and for cheap mass production (which even may use FPGAs these days ..). 
 But it turns out that the overall performance and elegance of this
-approach is sufficient for building valuable real-world applications.
+approach is often absolutely sufficient for building valuable 
+real-world applications.
 
 
 ## Examples
@@ -82,22 +83,29 @@ The _Hello berry_ is so simple that it only needs a hardware description file
 
 Try the _Hello berry_ : http://followthescore.org:9001
 
-The web UI contains a link to the HWD file so that you see what was needed
+The web UI contains a link to the HWD file so that you can see what was needed
 to build this _berry_.
 
 ### The _Dimmer berry_
 
-A slightly more complex example is the _Dimmer berry_. It also has a LED and
-a push button. Holding the button down, however, changes the brightness of the LED,
-a short tap will toggle between OFF and the last brightness level; a double
-tap will switch to maximum brightness immediately.
+A slightly more complex example is the _Dimmer berry_. It also consists of a LED and
+a push button. Holding the button down, however, changes the brightness of the LED
+continuously, a short tap will toggle between OFF and the last brightness level; 
+a double tap will switch to maximum brightness immediately.
 
 Try the _Dimmer berry_ : http://followthescore.org:9005  
 
 This time we needed to add our own server-side class ("Dimmer.js") which provides
 the specific application logic. The UI has a link to show its source code.
 
-	
+### More _berries_ in the shop ..
+
+A collection of freely available _berries_ can be found under https://followthescore.org/berry
+
+Once you have installed __berry-frame__ you can install a berry from the shop by
+typing at the command line ``berry -i berryNameFromShop``.
+
+
 ## Installation
 
 Change to the home directory of your project. We will call this directory
@@ -127,23 +135,23 @@ with the following code:
 ```javascript
 require('berry-frame');
 ```
-In that case you would call __berry-frame__ via ``node Berry (args...)``
+In that case you would call __berry-frame__ via ``node Berry (args...)`` and you can
+add your own code before the ``require`` statement.
 
 
 Depending on the degree of automation you want, some more steps may be desirable to ..
 + .. start __berry-frame__ and your _berry_ directly after the Raspberry Pi has booted,
 + .. start a watch dog process (monitor) which will restart your _berry_ if something went wrong 
 + .. start a _Master berry_ which registers running _berries_ and facilitates interaction between them
++ .. start a background process which will reconnect WiFi in case the connection was lost
 
-The online manual will tell you how to do this. For the moment we can skip these steps.
+The online manual will tell you how to do this. For the moment we skip these steps.
 
 
 ## Install a sample _berry_
 
-Unzip one or more of the _sample berries_ into your development root, 
-which have been delivered together with __berry_frame__,
-e.g. ``node_modules/berry-frame/sample_berries/Hello.zip``. Now you should
-have a directory named ``Hello`` in your development root.
+Call ``berry -i Hello`` or unzip ``node_modules/berry-frame/sample berries/Hello.zip``
+into BERRY_HOME.
 
 The directory tree of a typical installation will then look like this:
 
@@ -191,10 +199,10 @@ see the web user interface.
 
 ## Online Manual
 
-The Online Manual contains more information on __berry-frame__ and some hints
+The Online Manual contains more details about __berry-frame__ and some hints
 on how to design your own _berries_.
 
-To access the online manual start click on the red raspberry icon in the 
+To access the online manual click on the red raspberry icon in the 
 top left corner of the web UI.
 
 The manual is written in markdown syntax and can be found under

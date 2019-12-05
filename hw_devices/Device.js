@@ -307,17 +307,43 @@ class OutputDevice extends IODevice {
 		if (this.watcher) this.watcher(0,this,this.constructor.name,value);
 	}
 	
-	on() {
-		this.setValue(Gpio.HIGH);
+	on(but,value,action) {
+		if (action) Logger.log("LED          on  : ",action);
+		if (action && ((action.when=="off" && this.getValue()!=Gpio.LOW) || (action.when=="on" && this.getValue()!=Gpio.HIGH))) return; 
+		if (action && action.myDelay) {
+			var that=this;
+			setTimeout(function() { that.setValue(Gpio.HIGH); }, action.myDelay);
+		}
+		else if (action && action.Delay) {
+			if (this.delayOn) clearTimeout(this.delayOn);
+			var that=this;
+			this.delayOn = setTimeout(function() { that.setValue(Gpio.HIGH); }, action.Delay);
+		}
+		else {
+			this.setValue(Gpio.HIGH);
+		}
 	}
 		
-	off() {
-		this.setValue(Gpio.LOW);
+	off(but,value,action) {
+		if (action) Logger.log("LED          off : ",action);
+		if (action && ((action.when=="off" && this.getValue()!=Gpio.LOW) || (action.when=="on" && this.getValue()!=Gpio.HIGH))) return; 
+		if (action && action.myDelay) {
+			var that=this;
+			setTimeout(function() { that.setValue(Gpio.LOW); }, action.myDelay); 
+		}
+		else if (action && action.Delay) {
+			if (this.delayOff) clearTimeout(this.delayOff);
+			var that=this;
+			this.delayOff = setTimeout(function() { that.setValue(Gpio.LOW); }, action.Delay);
+		}
+		else {
+			this.setValue(Gpio.LOW);
+		}
 	}
 	
-	toggle() {
-		if (this.isOn()) this.off();
-		else			 this.on();
+	toggle(but,value,action) {
+		if (this.isOn()) this.off(but,value,action);
+		else			 this.on (but,value,action);
 	}
 	
 	release() {
@@ -434,6 +460,12 @@ LED.getApiDescription = function () {
 				{name:"duration",	meaning:"the time span for blinking; excess cycles will be ignored"},
 			],
 			effect:"let the LED blink according to the settings"
+		},
+		{	cmd:	"on",
+			effect:	"switch LED on"
+		},
+		{	cmd:	"off",
+			effect:	"switch LED off"
 		},
 		{	cmd:	"toggle",
 			effect:	"toggle the current state of the LED between on and off"

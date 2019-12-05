@@ -12,9 +12,8 @@ echo -----------------------------------------------------------
 	goto loop
 
 :restart
-	echo restarting ..
-	date /t
-	time /t
+	type restart.cmd
+	sleep 3
 	call start restart.cmd
 	sleep 5
 	del restart.cmd

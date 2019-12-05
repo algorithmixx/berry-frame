@@ -120,7 +120,7 @@ class Hardware {
 		
 		var plainConfigText = configText
 			.replace(/\s\/\/.*?\r?\n/g,'\n')									// remove comments
-			.replace(/\/\*[\s\S]*?\*\//g,'')										// remove comments
+			.replace(/\/\*[\s\S]*?\*\//g,'')									// remove comments
 			.replace(/([\n\{,]\s*)([a-zA-Z][a-zA-Z_0-9]*) *:/g,'$1"$2":')		// embrace attribute names with quotes
 			.replace(/,\s*([\}\]])/g,"$1")										// remove superfluous comma
 			.replace(/"\+?\r?\n\s*"/g,"")										// concatenate multi-line strings
@@ -130,6 +130,7 @@ class Hardware {
 		try {
 			var config = JSON.parse(plainConfigText);
 			
+			for (var atr of ["title","type","desc","port","appClass","rev","img"]) delete this[atr];
 			for (var atr in config) {
 				if (atr=="elms") continue;
 				this[atr]=config[atr];
@@ -189,7 +190,7 @@ class Hardware {
 
 			Logger.info("Hardware     creating "+elm.type+": "+elm.id+"  ("+elm.name+") "+(elm.emulate?" (emulation)":""));
 
-			if (isMissing(elm.style))   elm.style	= "";
+			if (isMissing(elm.name))	elm.name	= elm.id;
 			if (isMissing(elm.log)	)   elm.log	    = 0;
 			if (isMissing(elm.emulate)) elm.emulate = false;
 			
@@ -340,24 +341,7 @@ class Hardware {
 				Logger.error("Hardware: unknown device type "+elm.type);
 			}
 		}
-		
-		// if we have a "circle" hardware: place the seven buttons and their associated leds in a circle
-		if (this.type.indexOf("Circle")==0) {
-			// count number of LEDs
-			var size=0;
-			for (var id in this.elms) if (this.elms[id].type=="LED") size++;
-			var d=300;
-			for (var n=0;n<size;n++) {
-				var pos=(n+0.5)*2*Math.PI/size;
-				var xb = d/2-20+Math.round(Math.sin(pos)*0.38*d);
-				var yb = d/2-15-Math.round(Math.cos(pos)*0.38*d);
-				this.elms["B"+n].style+="left:"+xb+"px;top:"+yb+"px";
-				var xl = d/2-20+Math.round(0.72*Math.sin(pos)*0.3*d);
-				var yl = d/2-20-Math.round(0.72*Math.cos(pos)*0.3*d);
-				this.elms["L"+n].style+="left:"+xl+"px;top:"+yl+"px";
-			}
-		}
-		
+
 		// now we have instantiated all hardware elements
 		// initialize the application;
 		if (this.appObject) this.appObject.init();
@@ -383,14 +367,17 @@ class Hardware {
 	}
 	
 	onButtonPressed(rc,button,type,value) {
-		// toggle the outputs linked to a button
+		// toggle the outputs linked to a button which has been pressed (= pushed & released)
 
 		var but = theHardware.elms[button.id];
-		Logger.log("Hardware     "+button.id+" pressed, elm(s): "+JSON.stringify(but.pressed.elm)+", cmd: "+but.pressed.cmd);
-		var elms= (typeof but.pressed.elm == "string") ? [but.pressed.elm] : but.pressed.elm;
-		for (var target of elms) {
-			if 		(target=="app" && theHardware.appObject) theHardware.appObject[but.pressed.cmd](but);
-			else theHardware.elms[target].dev[but.pressed.cmd](but);
+		var actions = typeof but.pressed == "array" ? but.pressed : [but.pressed];
+		for (var action of actions) {
+			var elms= action.elms || [action.elm];
+			for (var elm of elms) {
+				Logger.log("Hardware     "+button.id+" pressed, action: "+JSON.stringify(action));
+				if 	(action.elm=="app" && theHardware.appObject) theHardware.appObject[action.cmd](but,value,action);
+				else theHardware.elms[elm].dev[action.cmd](but,value,action);
+			}
 		}
 	}
 	
@@ -398,27 +385,19 @@ class Hardware {
 		// activates the outputs linked to a button while it is pushed
 
 		var but = theHardware.elms[button.id];
-		var elm = theHardware.elms[button.id];
-		var elms=[];
-		var cmd="?";
-		if (value==1 && isPresent(elm.down)) {
-			cmd=but.down.cmd;
-			elms= (typeof but.down.elm == "string") ? [but.down.elm] : but.down.elm;
-		}
-		else if (value==0 && isPresent(elm.up)) {
-			cmd=but.up.cmd;
-			elms= (typeof but.up.elm == "string") ? [but.up.elm] : but.up.elm;
-		}
-		else if (isPresent(elm.downUp)) {
-			cmd=but.downUp.cmd;
-			elms= (typeof but.downUp.elm == "string") ? [but.downUp.elm] : but.downUp.elm;
-		}
+		var actions = [];
+		if		(value==1 && isPresent(but.down)  ) actions=actions.concat(but.down  );
+		else if (value==0 && isPresent(but.up)    ) actions=actions.concat(but.up    );
+		if		(			 isPresent(but.downUp)) actions=actions.concat(but.downUp);
 
-		Logger.log("Hardware     "+button.id+" "+value+", elm(s): "+JSON.stringify(elms)+", cmd: "+cmd);
-		
-		for (var target of elms) {
-			if 		(target=="app" && theHardware.appObject) theHardware.appObject[cmd](but,value);
-			else theHardware.elms[target].dev[cmd](but,value);
+		for (var action of actions) {
+			var elms= action.elms || [action.elm];
+			for (var elm of elms) {
+				Logger.log("Hardware     "+button.id+" "+value+", action: "+JSON.stringify(action));
+
+				if 	(action.elm=="app" && theHardware.appObject) theHardware.appObject[action.cmd](but,value,action);
+				else theHardware.elms[elm].dev[action.cmd](but,value,action);
+			}
 		}
 	}
 	

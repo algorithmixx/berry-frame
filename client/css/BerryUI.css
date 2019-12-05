@@ -41,6 +41,7 @@ table.iface td {
 
 button.Button {
 	position:			absolute;
+	background-color:	#ffc;
 	border:				solid 1px gray;
 	font-size:			14px;
 	text-align: 		center;
@@ -59,11 +60,11 @@ button.Button {
 }
 
 .Button:hover {
-	background-color: 	#3e8e41;
+	background-color: 	#ffa;
 }
 
 .Button:active {
-  background-color: 	#3e8e41;
+  background-color: 	#ff0;
   box-shadow: 			2px 2px #666;
 }
 

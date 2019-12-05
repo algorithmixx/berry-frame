@@ -4,6 +4,8 @@
     "url": "https://github.com/algorithmixx/berry-frame/issues"
   },
   "dependencies": {
+    "@appgeist/get-file-from-url": "^1.1.3",
+    "cross-zip": "^2.1.6",
     "ip": "^1.1.5",
     "microtime": "^3.0.0",
     "node-getopt": "^0.3.2",
@@ -38,5 +40,5 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "version": "1.0.7"
+  "version": "1.0.8"
 }

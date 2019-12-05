@@ -26,7 +26,7 @@ class BerryFrame {
 		// get current script name
 
 		this.scriptName	 = process.argv[1].replace(/.*[/\\]/,'').replace(/[.]js$/,'');
-		this.versionId	 = "1.0.7";
+		this.versionId	 = "1.0.8";
 		
 		// find known Berry application types and their default properties (description, port, rev, ..)
 		this.appTypes = this.findAppTypes();
@@ -38,7 +38,7 @@ class BerryFrame {
 			this.checkInstallation();
 			return;
 		}
-		
+				
 		// select the desired application type
 		this.appType = this.appTypes[this.cmdLine.argv[0]];
 		
@@ -103,6 +103,9 @@ class BerryFrame {
 				['v' , 'version',				'display version ID'													],
 				['a' , 'api',					'display syntax help on the API of all supported hardware element types'],
 
+				['i' , 'install=',				'install a berry from the berry-shop, expects the name as an argument'	],
+				['b' , 'browse',				'open site in local default browser after server has started'			],
+
 				['n' , 'name=',					'server name for identification, default: appType'						],
 				['p' , 'port=',					'port number, default: depending on appType (8080..8090)'				],
 				['m' , 'master=localhost:9000',	'register at Master server, default:localhost:9000'						],
@@ -129,7 +132,9 @@ class BerryFrame {
 					+'Usage:\n  berry  [Options..]  <berryType>\n'
 					+'\nOptions:\n[[OPTIONS]]\n'
 					+'\n'
-					+'Available <berryTypes>:\n'+appsHelp
+					+'Available Berries:\n'+appsHelp
+					+'\n'
+					+'More Berries:\n'+'    see https://followthescore.org/berry/index.html\n'
 					+'\n'
 					+'Notes:\n'
 					+'  The program will run forever, acting as a server for http requests and socket connections.\n'
@@ -158,6 +163,11 @@ class BerryFrame {
 			Logger.info("BerryFrame: version "+this.versionId);
 			return null;
 		}
+
+		if (isPresent(getopt.options["i"])) {
+			this.installBerry(getopt.options["i"]);
+			return null;
+		}
 		
 		// if there are no arguments at all or if appType is missing: show help and exit
 		if (getopt.argv.length<=0) { 
@@ -165,7 +175,7 @@ class BerryFrame {
 			Logger.error('"appType" required.');
 			return null;
 		}
-		
+
 		var appTypeName = getopt.argv[0];
 		
 		// check if appType is known
@@ -173,6 +183,7 @@ class BerryFrame {
 			Logger.error("Berry        unknown appType: "+appTypeName);
 			return null;
 		}
+		
 		// if port is missing: use default port of appType
 		if (isMissing(getopt.options["port"])) {
 			getopt.options["port"] = this.appTypes[appTypeName].port;
@@ -194,7 +205,7 @@ class BerryFrame {
 		for (var arg in getopt.options) {
 			if (getopt.options[arg]!="" && !isNaN(getopt.options[arg])) getopt.options[arg]= + getopt.options[arg];
 		}
-
+		
 		// create an instance member for each option (with its long name)
 		for (var arg in getopt.options) {
 			if (isPresent(getopt.long_options[arg])) this[arg]=getopt.options[arg];
@@ -215,9 +226,48 @@ class BerryFrame {
 		if (!theHardware.build(this.name,this.versionId)) return;
 		
 		// create http server and loop forever
-		theServer.configure(this.appTypes,this.appType,this.name,this.revision,this.port,this.master,this.cmdLine.options['exclude']);
+		theServer.configure(
+			this.appTypes,
+			this.appType,
+			this.name,
+			this.revision,
+			this.port,
+			this.master,
+			this.cmdLine.options['exclude'],
+			this.cmdLine.options['browse'],
+			
+		);
 		theServer.start(this.cmd);
 		return;	// we never arrive here
+	}
+	
+	async installBerry(berry) {
+		// assume that berry is the name of a berry in the berry-shop
+
+		if (berry.charAt(0)==".") return;
+
+		if (require('fs').existsSync("./"+berry)) {
+			Logger.error("BerryFrame   cannot download berry '"+berry+"'. Local directory already exists");
+			return;
+		}
+
+		var url = "https://followthescore.org/berry/zip/"+berry+".zip";
+		Logger.info("BerryFrame   downloading from berry-shop: "+berry);
+		
+		try {
+			const getFileFromUrl = require("@appgeist/get-file-from-url");
+			const localZip = await getFileFromUrl({
+				url: url,
+				file: "./"+berry+".zip"
+			});
+			Logger.info("BerryFrame   downloaded "+localZip);
+			require('cross-zip').unzipSync(localZip, ".");
+			Logger.info("BerryFrame   unzipped "+localZip);
+			require('fs').unlinkSync(localZip);
+		}
+		catch(e) {
+			Logger.error("cannot download "+url);
+		}
 	}
 
 	async checkInstallation() {
