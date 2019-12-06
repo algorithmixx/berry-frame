@@ -72,7 +72,9 @@ class Speakers extends Device {
 	}
 
 	playMorse(code,unit) {
-		Logger.log("Speakers     playing Morse (Raspi,"+unit+"): "+code);		
+		unit = unit || 150;
+		Logger.log("Speakers     playing Morse ("+unit+"): "+code);
+		new MorseSnd().play(code,unit);		
 		if (this.watcher) {
 			this.watcher(0,this,"Speakers",{morse:code,unit:unit});
 		}
@@ -106,6 +108,63 @@ Speakers.getApiDescription = function() {
 			effect:"plays the corresponding more beep sound"
 		}
 	];
+}
+
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+// under windows npm install speaker fails; so we can use server sound only on the Radio
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+var audioCtx=false;
+if (process.platform != "win32") {
+	const AudioContext = require("web-audio-engine").StreamAudioContext;
+	audioCtx = new AudioContext();
+	const Speaker = require('speaker');
+	audioCtx.pipe(new Speaker());
+	audioCtx.resume();
+}
+
+class MorseSnd {
+
+	constructor() {
+		// server-side audioCtx is only available on the Raspi
+		
+		if (!audioCtx) return;		// audio context must have been created
+		
+		// create gain
+		this.gain		= audioCtx.createGain();
+		this.gain.connect(audioCtx.destination);
+
+		// create oscillator
+		this.oscillator = audioCtx.createOscillator();
+		this.oscillator.type = 'sine';
+		this.oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // value in hertz
+		this.oscillator.connect(this.gain);
+	}
+	
+	play(text) {
+		if (!audioCtx) return;		// audio context must have been created	
+		this.oscillator.start();
+		this.morse(text,0,130);
+	}
+
+	morse(text,pos,base) {
+		if (pos>=text.length) {
+			this.oscillator.stop();
+			return;
+		}
+		var snd=true;
+		var that=this;
+		if (text[pos]==" ") {
+			this.gain.gain.setValueAtTime(0,audioCtx.currentTime);
+			setTimeout(function() {	that.morse(text,pos+1,base); },3*base);
+		}
+		else {
+			var duration = (text[pos]=="-" ? 3*base : base);
+			this.gain.gain.setValueAtTime(1,audioCtx.currentTime);
+			setTimeout(function() {	that.gain.gain.setValueAtTime(0,audioCtx.currentTime); }, duration);
+			setTimeout(function() {	that.morse(text,pos+1,base); },duration+base);
+		}
+	}
 }
 
 module.exports = Speakers;

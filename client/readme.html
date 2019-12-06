@@ -992,7 +992,7 @@ Action: {
 
 ### 12.6) Improve your _berry_
 	Start the ``node_modules/berry-frame/bin/monitor.bat`` script in the background.
-	Change the HWD or your JS applicatiion code. Then press the blue button in the client.
+	Change the HWD or your JS application code. Then press the blue button in the client.
 	The client will tell the server to terminate and restart. __Only after the restart__ the
 	server will load your changed code and you see the effect.
 
@@ -1005,12 +1005,15 @@ Action: {
 	
 	If you make changes to the code or to the HWD file you can use the blue RESTART button in 
 	the Web UI to restart the server of your _berry_.
-	
-	If you keep your master version on Windows you must make sure that a changed file
-	is transferred to the Raspi before you execute it there.
+		
+	If you keep your master version on Windows (which is good practice) you must make sure 
+	that all changed files are transferred to the Raspi before you execute your _berry_ there.
 
 	Once everything seems ok you should also provide a ZIP file for your _berry_ so that
 	interested users can download it and duplicate it onto their machines.
+	Simply call ``berry -z myBerry``. This will create ``BERRY_HOME/zip/myBerry.zip``,
+	the file which will be offered to the user in the web client
+	for downloading a berry which is currently running.
 
 
 ## <a name="c13"/> 13) LICENSE and COPYRIGHT

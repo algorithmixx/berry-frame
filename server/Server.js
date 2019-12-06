@@ -142,6 +142,7 @@ class Server {
 
 		// install hardware interrupt watchers for all "out" devices
 		// and have them broadcast their changed states to all connected clients
+		
 		for (var elm of Object.values(theHardware.elms)) {
 			if (elm.dev && elm.dev.direction=="out") {
 				Logger.info("Server       installing output watcher for "+elm.type+":"+elm.id);
