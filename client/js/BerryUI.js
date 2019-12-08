@@ -212,11 +212,6 @@ class BerryUI {
 		});
 
 	}
-
-	sendAction(hw,obj) {
-		// serialize an object and send it as an 'action' to a given server
-		app.sockets[hw].emit('action',JSON.stringify(obj));
-	}
 	
 	updateRegisteredServers(jsonMsg) {
 		$("#servers").html("");
@@ -464,95 +459,34 @@ class BerryUI {
 				it="<div id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style='"+elm.style+"'>"+elm.name+"</div>";
 			}
 
-			else if (elm.type=="Button" || elm.type=="Action") {
+			else if (elm.type=="Button") {
 				if (elm.color) elm.style+=";background-color:"+elm.color+";";
-				var target=null;
-				if (elm.elm) {
-					if 		(elm.elm=="app") 		target={id:"app",type:"App"};
-					else if (elm.elm=="api")		target={id:"api",type:"API"};
-					else if (elm.elm=="hardware")	target={id:"hardware",type:"Hardware"};
-					else {					
-						target = hardware.elms[elm.elm];
-						if (!target) {
-							alert("There is no hardware device with id='"+elm.elm+"'");
-							target=null;
-						}
-					}
-				}
-				if (target==null && elm.type=="Button") {
-					// we have a button which will be handled individually by the application
-					var handles = "";					
-					if (elm.pressed) {
-						handles += "' onclick='app.sendAction("+hw+",{id:\""+elm.id+"\",state:\"pressed\"});'";
-					}
-					if (elm.down || elm.downUp) {
-						handles += " onmousedown='app.sendAction("+hw+",{id:\""+elm.id+"\",state:\"down\"});'";
-					}
-					if (elm.up || elm.downUp) {
-						handles += " onmouseup='app.sendAction("+hw+",{id:\""+elm.id+"\",state:\"up\"});'";
-					}
-					it=	"<button id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style='"+elm.style+"'"+handles+">"+elm.name+"</button>";
-				}
-				else if (target.type=="API") {
-					// call API
-					it= "<button id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style='"+elm.style+
-						"' onclick='app.api("+hw+",\""+target.id+"\",\""+elm.cmd+"\");'>"+elm.name+"</button>";
-				}
-				else if (target.type=="App") {
-					// call a method of the application specific class
-					if (elm.type=="Action" && Array.isArray(elm.arg)) {
-						// array of args makes the elememt a select box
-						var opts= "<option>"+elm.arg.join("</option><option>")+"</option>";
-						it=	"<select id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style='"+elm.style+"'"+
-							" onmouseup='var open=$(this).data(\"isopen\"); if(open) { app.sendAction("+
-							hw+",{id:\""+target.id+"\",cmd:\""+elm.cmd+"\",arg:$(this).val()})}; $(this).data(\"isopen\",!open);'"+
-							">"+opts+"</select>"
-						;
-					}
-					else {
-						it=	"<button id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style='"+elm.style+
-							"' onclick='app.sendAction("+hw+",{id:\""+target.id+"\",cmd:\""+elm.cmd+"\",arg:\""+
-							(elm.arg?elm.arg:"")+"\"});'>"+elm.name+"</button>"
-						;
-					}
-				}
-				else if (target.type=="Hardware") {
-					// send cmd to the Hardware as a whole
-					it= "<button id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style='"+elm.style+
-						"' onclick='app.sendAction("+hw+",{id:\""+target.id+"\",cmd:\""+elm.cmd+"\"});'>"+elm.name+"</button>";
-				}
-				else if (target.type=="WS2801") {
-					// play a program on the WS2801 strip
-					it=	"<button id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style='"+elm.style+
-						"' onclick='app.sendAction("+hw+",{id:\""+target.id+"\",cmd:\"play\",prog:\""+elm.prog+"\"});'>"+elm.name+"</button>";
-				}
-				else if (target.type=="Speakers") {
-					// play a sound on the speakers
-					it=	"<button id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style='"+elm.style+
-						"' onclick='app.sendAction("+hw+",{id:\""+target.id+"\",cmd:\"play\",prog:\""+elm.prog+"\"});"+
-						"'>"+elm.name+"</button>";
-				}
-				else if (target.type=="MPU6500") {
-					// get data from motion sensor
-					// it=	"<button id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style='"+elm.style+
-					//	"' onclick='app.sendAction("+hw+",{id:\""+target.id+"\",cmd:\""+elm.cmd+"\"});'>"+elm.name+"</button>";
-				}
-				else if (target.type=="LED") {
-					// blink LED
-					var atrs="";
-					if (elm.interval)	atrs+=',interval:'+elm.interval;
-					if (elm.ratio)		atrs+=',ratio:'+elm.ratio;
-					if (elm.cycles)		atrs+=',cycles:'+elm.cycles;
-					it= "<button id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style='"+elm.style+
-						"' onclick='app.sendAction("+hw+",{id:\""+target.id+"\",cmd:\"blink\""+atrs+"});'>"+elm.name+"</button>";
-				}
-				else if (target.type=="Display") {
-					// send msg to display
-					it= "<button id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style='"+elm.style+
-						"' onclick='app.sendAction("+hw+",{id:\""+target.id+"\",msg:\""+elm.msg+"\"});'>"+elm.name+"</button>";
+				// we have a button which will be handled individually by the application
+				var handles = "";					
+				if (elm.pressed				) handles += "' onclick='app.sendAction("+hw+",{id:\""+elm.id+"\",state:\"pressed\"});'";
+				if (elm.down || elm.downUp	) handles += " onmousedown='app.sendAction("+hw+",{id:\""+elm.id+"\",state:\"down\"});'";
+				if (elm.up || elm.downUp	) handles += " onmouseup='app.sendAction("+hw+",{id:\""+elm.id+"\",state:\"up\"});'";
+				it=	"<button id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style='"
+					+elm.style+"'"+handles+">"+elm.name+"</button>";
+			}
+			else if (elm.type=="Action") {
+				if (elm.options.length==1) {
+					// Action without options
+					it=	"<button id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style='"
+						+elm.style+"' onclick='app.sendAction("+hw+",{id:\""+elm.id+"\"});'>"+elm.name+"</button>";
 				}
 				else {
-					alert("BerryUI: don´t know how to link action or button to "+target.type+" "+target.id);
+					// Action with multiple string values or with multiple option objects (value, elm, cmd, arg)
+					var opts="";
+					for (var opt of elm.options) {
+						if (typeof opt == "string") opts+= "<option>"+opt+"</option>";
+						else  opts+="<option>"+opt.value+"</option>";
+					}
+					it=	"<select id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style='"
+						+elm.style+"'"+" onmouseup='var open=$(this).data(\"isopen\"); if(open) { app.sendAction("
+						+hw+",{id:\""+elm.id+"\",value:$(this).val()})}; $(this).data(\"isopen\",!open);'"
+						+">"+opts+"</select>"
+					;
 				}
 			}
 
@@ -617,15 +551,15 @@ class BerryUI {
 					<div style="display:inline-block;margin-top:5px;vertical-align:top;">
 						<div>
 							<label>X</label>
-							<input style="width:120px;" class="rotX" type="range" min="0" max="359" value="`+elm.rot[0]+`" oninput="app.sendRotation(`+hw+`,'`+elm.id+`',0,this.value)">
+							<input style="width:120px;" class="rotX" type="range" min="0" max="359" value="`+elm.rot[0]+`" oninput="app.sendRotation(`+hw+`,'`+elm.id+`',0,(this.value-`+elm.orientation[0]+`)%360)">
 						</div>
 						<div>
 							<label>Y</label>
-							<input style="width:120px;" class="rotY" type="range" min="0" max="359" value="`+elm.rot[1]+`" oninput="app.sendRotation(`+hw+`,'`+elm.id+`',1,this.value)">
+							<input style="width:120px;" class="rotY" type="range" min="0" max="359" value="`+elm.rot[1]+`" oninput="app.sendRotation(`+hw+`,'`+elm.id+`',1,(this.value-`+elm.orientation[1]+`)%360)">
 						</div>
 						<div>
 							<label>Z</label>
-							<input style="width:120px;" class="rotZ" type="range" min="0" max="359" value="`+elm.rot[2]+`" oninput="app.sendRotation(`+hw+`,'`+elm.id+`',2,this.value)">
+							<input style="width:120px;" class="rotZ" type="range" min="0" max="359" value="`+elm.rot[2]+`" oninput="app.sendRotation(`+hw+`,'`+elm.id+`',2,(this.value-`+elm.orientation[2]+`)%360)">
 						</div>
 					</div>
 					<div class="MPU6500_bg">
@@ -655,35 +589,47 @@ class BerryUI {
 			}
 
 			$("#hardware_"+hw).append(it);
+			
 		}
+
+		$("#hwimg_"+hw+" img").css({maxHeight: $("#hw_"+hw).height()});
+
 
 	}
 
+	sendAction(hw,obj) {
+		// serialize an object and send it as an 'action' to a given server
+		app.sockets[hw].emit('action',JSON.stringify(obj));
+	}
+
+	sendTextInput(hw,id) {
+		var elm=app.hardwares[hw].elms[id];
+		var value=$("#hw_"+hw+"_"+id+" textarea").val();
+		app.sendAction(hw,{id:id,arg:value});
+	}
+	
 	sendRotation(hw,id,axis,val) {
 		var elm=app.hardwares[hw].elms[id];
 		elm.rot[axis]=parseInt(val);
-		var x = elm.rot[0];
-		var y = elm.rot[1];
-		var z = elm.rot[2];
+		var x = (elm.rot[0]+elm.orientation[0]) % 360;
+		var y = (elm.rot[1]+elm.orientation[1]) % 360;
+		var z = (elm.rot[2]+elm.orientation[2]) % 360;
 		$("#hw_"+hw+"_"+id+" .MPU6500_model").css({ transform:"rotateX("+x+"deg) rotateY("+y+"deg) rotateZ("+z+"deg)" });
 		app.sendAction(hw,{id:id,cmd:"setValue",value:elm.rot});
 	}
 
 	updateRotations(hw,id,val) {
 		var elm=app.hardwares[hw].elms[id];
-		var x = elm.rot[0]= (val[0]+360) % 360;
-		var y = elm.rot[1]= (val[1]+360) % 360;
-		var z = elm.rot[2]= (val[2]+360) % 360;		
+		elm.rot[0]= (val[0]+360) % 360;
+		elm.rot[1]= (val[1]+360) % 360;
+		elm.rot[2]= (val[2]+360) % 360;		
+		var x = (elm.rot[0] + elm.orientation[0]) % 360;
+		var y = (elm.rot[1] + elm.orientation[1]) % 360;
+		var z = (elm.rot[2] + elm.orientation[2]) % 360;
 		$("#hw_"+hw+"_"+id+" .rotX").val(x);
 		$("#hw_"+hw+"_"+id+" .rotY").val(y);
 		$("#hw_"+hw+"_"+id+" .rotZ").val(z);
 		$("#hw_"+hw+"_"+id+" .MPU6500_model").css({ transform:"rotateX("+x+"deg) rotateY("+y+"deg) rotateZ("+z+"deg)" });
-	}
-	
-	sendTextInput(hw,id) {
-		var elm=app.hardwares[hw].elms[id];
-		var value=$("#hw_"+hw+"_"+id+" textarea").val();
-		app.sendAction(hw,{id:elm.elm,cmd:elm.cmd,arg:value});
 	}
 	
 	api(hw,id,cmd) {

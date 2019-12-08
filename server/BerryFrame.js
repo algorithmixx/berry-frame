@@ -26,7 +26,7 @@ class BerryFrame {
 		// get current script name
 
 		this.scriptName	 = process.argv[1].replace(/.*[/\\]/,'').replace(/[.]js$/,'');
-		this.versionId	 = "1.0.9";
+		this.versionId	 = "1.1.0";
 		
 		// find known Berry types and their default properties (description, port, rev, ..)
 		this.berryTypes = this.findBerryTypes();
@@ -41,9 +41,6 @@ class BerryFrame {
 				
 		// select the desired berry type
 		this.berryType = this.berryTypes[this.cmdLine.argv[0]];
-		
-		// zip current berry if requested
-		if (this.zip) this.zipBerry();
 		
 		// intro message
 		Logger.info("BerryFrame   "+JSON.stringify(this.cmdLine.argv)+" -- "+JSON.stringify(this.cmdLine.options));
@@ -180,11 +177,24 @@ class BerryFrame {
 			return null;
 		}
 
+		if (getopt.options["zip"] && getopt.argv[0]=="all") {
+			for(var berry in this.berryTypes) {
+				if (berry=="Master") continue;
+				this.zipBerry(berry);
+			}
+			return null;
+		}
+
 		var berryTypeName = getopt.argv[0];
 		
 		// check if berryType is known
 		if (!this.berryTypes[berryTypeName]) {
 			Logger.error("Berry        unknown berryType: "+berryTypeName);
+			return null;
+		}
+
+		if (getopt.options["zip"]) {
+			this.zipBerry(berryTypeName);
 			return null;
 		}
 		
@@ -280,7 +290,7 @@ class BerryFrame {
 		}
 	}
 	
-	async zipBerry() {
+	async zipBerry(berry) {
 		// create a ZIP file for the currently running berry
 
 		const fs = require('fs');
@@ -290,12 +300,12 @@ class BerryFrame {
 		// check if we already have a zip file with a creation date 
 		// which is later than the berry directory last modification date
 
-		var zipFile = "./zip/"+this.berryType.name+".zip";
+		var zipFile = "./zip/"+berry+".zip";
 		if (fs.existsSync(zipFile)) {
 			var modified = fs.statSync(zipFile).mtime;
 			// under non-windows systems check if the zip archive is up to date; 
 			// (win32 modification times of directories are not reliable)
-			if (process.platform!="win32" && fs.statSync("./"+this.berryType.name).mtime < modified) {
+			if (process.platform!="win32" && fs.statSync("./"+berry).mtime < modified) {
 				Logger.log("BerryFrame   zip was up to date ("+modified+")");
 				return;
 			}
@@ -306,7 +316,7 @@ class BerryFrame {
 		// create zip file
 		Logger.log("BerryFrame   creating "+zipFile);		
 		try {
-			require('cross-zip').zipSync("./"+this.berryType.name,zipFile);
+			require('cross-zip').zipSync("./"+berry,zipFile);
 		}
 		catch(e) {
 			Logger.error("BerryFrame: cannot create "+zipFile);

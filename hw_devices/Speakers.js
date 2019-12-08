@@ -116,11 +116,17 @@ Speakers.getApiDescription = function() {
 
 var audioCtx=false;
 if (process.platform != "win32") {
-	const AudioContext = require("web-audio-engine").StreamAudioContext;
-	audioCtx = new AudioContext();
-	const Speaker = require('speaker');
-	audioCtx.pipe(new Speaker());
-	audioCtx.resume();
+	try {
+		const Speaker = require('speaker');
+		const AudioContext = require("web-audio-engine").StreamAudioContext;
+		audioCtx = new AudioContext();
+		audioCtx.pipe(new Speaker());
+		audioCtx.resume();
+	}
+	catch (e) {
+		// ignore silently; "speaker" will not be there during the very firstChild
+		// invocation of berry-frame on a Raspi ..
+	}
 }
 
 class MorseSnd {

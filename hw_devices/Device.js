@@ -368,10 +368,18 @@ class LED extends OutputDevice {
 		this.remainingCycles = 	0;
 	}
 	
-	blink(interval,ratio,duration,cycles,finished) {
+	blink(args,finished) {
 		// blink in a constant rhythm (_interval_) for some time (_duration_)
 		// or for a given number of _cycles_
+
 		
+		var interval= args && args.interval ? args.interval	:	500;
+		var	ratio	= args && args.ratio	? args.ratio	: 	50;
+		var	duration= args && args.duration ? args.duration	:	0;
+		var	cycles	= args && args.cycles	? args.cycles	:	3;
+
+		Logger.log("LED          blink: "+interval+","+ratio+","+duration+","+cycles);
+
 		if (this.stopTimer) {
 			Logger.error(this.toString().padEnd(12)+" cannot start blinking; you must first stop the current blinking process.");
 			if (isPresent(finished) && finished) finished(this,-1);

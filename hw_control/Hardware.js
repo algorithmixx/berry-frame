@@ -272,6 +272,7 @@ class Hardware {
 					elm.id,
 					elm.name,
 					elm.image3d,
+					elm.orientation || [0,0,0],
 					elm.emulate
 				);
 				elm.dev.connect();
@@ -333,7 +334,12 @@ class Hardware {
 					elm.emulate
 				);
 			}
-			else if (elm.type=="Label" || elm.type=="FrontPanel" || elm.type=="Action") {
+			else if (elm.type=="Action") {
+				if (isPresent(elm.selected)) {
+					;
+				}
+			}
+			else if (elm.type=="Label" || elm.type=="FrontPanel") {
 				; // do nothing
 			}
 			else {		

@@ -12,7 +12,7 @@ class MPU6500 extends Device {
 	// note that communication with the strip hardware via SPI is asynchronous
 	// This means that some methods have an argument which is a callback function
 
-	constructor(id,name,image3d,emulate) {
+	constructor(id,name,image3d,orientation,emulate) {
 
 		super(id,name,[],emulate);
 		this.gpios		= [2,3];
@@ -21,6 +21,7 @@ class MPU6500 extends Device {
 		this.direction	= "in";
 		this.address	= 0x68;
 		this.image3d	= image3d;
+		this.orientation= orientation;
 		this.value		= [0,0,0];
 	}
 
@@ -45,10 +46,10 @@ class MPU6500 extends Device {
 			this.dev = new (require('../hw_protocols/I2CWin.js').I2CWin)();
 		}
 
-		var or;
+		var dir;
 		for (var n=0;n<1;n++) {
-			or=this.getValue();
-			Logger.log("MPU6500      orientation:  "+or[0]+" -- "+or[1]+" -- "+or[2]);
+			dir=this.getValue();
+			Logger.log("MPU6500      direction:  "+dir[0]+" -- "+dir[1]+" -- "+dir[2]);
 		}
 	}
 

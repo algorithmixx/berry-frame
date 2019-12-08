@@ -205,20 +205,24 @@ class Server {
 		var my=theServer;
 		if (theHardware.appObject && theHardware.appObject.onStart) {
 			if (initialActions) {
-				theHardware.appObject.onStart(function() { my.performAction(initialActions.split(";") ); });
+				theHardware.appObject.onStart(function() { 
+					my.performAction(initialActions.split(";"));
+				});
 			}
 			else {
-				theHardware.appObject.onStart();
+				theHardware.appObject.onStart( null );
 			}
 		}
 		else {
 			// perform initial action
-			if (initialActions!="") this.performAction(initialActions.split(";"));
+			if (initialActions!="") {
+				this.performAction(initialActions.split(";"));
+			}
 		}
 		
 	}
 	
-	performAction(actions) {
+	performAction(actions,done) {
 		// executes the first element in the list
 		// and recursively calls itself with the shifted list
 		// so, finally all cmds will be played one after the other
@@ -230,8 +234,8 @@ class Server {
 			.replace(/:([a-zA-Z][a-zA-Z_0-9 ]*)/g,':"$1"')
 		;
 		var my=this;
-		if (actions.length>0)	this.action(null,actionJson,function(proc) { my.performAction(actions);	});	
-		else 					this.action(null,actionJson,null);	
+		if (actions.length>0)	this.action(null,actionJson,function(proc) { my.performAction(actions,done);	});	
+		else 					this.action(null,actionJson,done);	
 	}
 	
 	handleSocketAsServer(socket) {
@@ -466,9 +470,34 @@ class Server {
 				target.dev.println(action.msg);
 				return {type:"Display",id:target.id,msg:action.msg};
 			}
+			else if (target.type=="TextInput") {
+				// client sends text input
+				if (target.changed && target.changed.elm=="app") {
+					return theHardware.appObject[target.changed.cmd](null,action.arg);
+				}
+				else {
+					return theHardware.elms[target.changed.elm].dev[target.changed.cmd](action.arg);
+				}
+			}
 			else if (target.type=="Action") {
-				// client tells us that an action was selected in a select box
-				Logger.log("what shall we do with "+action.cmd+" -- "+action.arg+"?");
+				// client tells us that an action was selected
+				var elm, cmd, arg;
+				if (!action.value) action.value=target.options[0].value;
+				for (var opt of target.options) {
+					if ((!opt.value && opt!=action.value) || (opt.value && opt.value!=action.value)) continue;
+					if (target.selected) {
+						elm = target.selected.elm;
+						cmd = target.selected.cmd;
+						arg = target.selected.arg;
+					}
+					if (opt.elm) elm=opt.elm;
+					if (opt.cmd) cmd=opt.cmd;
+					if (opt.arg) arg=opt.arg;
+					if (!opt.arg) arg = action.value;
+					break;
+				}
+				if (elm=="app") return theHardware.appObject[cmd](null,arg);
+				else return theHardware.elms[elm].dev[cmd](arg);
 			}
 			else {
 				var msg="Server: unknown action: "+JSON.stringify(action);
@@ -556,8 +585,8 @@ class Server {
 	broadcastState(device,type,value)	 {
 		var my=theServer;
 		var msg = JSON.stringify({states:[{id:device.id,type:type,value:value}]});
-		Logger.log("Server       SOCKET sending "+msg);
 		// transmit to all connected clients
+		if ((type!="WS2801" && type!="MPU6500") || Logger.level>=2) Logger.log("Server       SOCKET broadcast "+msg);
 		my.io.emit('state',msg);
 	}
 
@@ -567,11 +596,10 @@ class Server {
 		
 		var my=theServer;
 		
-		var response=JSON.stringify(theHardware.getSetupJson());
-		Logger.log("Server       SOCKET sending hardware setup: "+response);
-		socket.emit('state',response);
-		
-		response=JSON.stringify(theHardware.getAllStatesJson());
+		Logger.log("Server       SOCKET sending hardware setup: "+JSON.stringify(theHardware.getSetupJson(),null,4));
+		socket.emit('state',JSON.stringify(theHardware.getSetupJson()));
+
+		var response=JSON.stringify(theHardware.getAllStatesJson());
 		Logger.log("Server       sending ALL STATES "+response);
 		socket.emit('state',response);
 		

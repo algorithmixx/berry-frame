@@ -12,7 +12,7 @@ class SPIWin {
 		this.clockSpeed(4e6);
 		this.dataMode({ CPHA:0,CPOL:0 });
 		this.bitOrder(0);
-		Logger.info("____SPIWin   using "+deviceName+" (emulation)");
+		Logger.info("SPIWin       using "+deviceName+" (emulation)");
 	}
 
 	clockSpeed(speed) {
@@ -36,7 +36,7 @@ class SPIWin {
 	}
 
 	read(incount, cb) {
-		Logger.log("____SPIWin    read .. "+incount);
+		Logger.log("SPIWin        read .. "+incount);
 		if (cb) cb();
 	}
 	
@@ -46,7 +46,7 @@ class SPIWin {
 	}
 
 	close(cb) {
-		Logger.info("____SPIWin    "+this.deviceName+" closed");
+		Logger.info("SPIWin        "+this.deviceName+" closed");
 		if (cb) cb();
 	}
 }

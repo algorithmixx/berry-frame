@@ -121,7 +121,8 @@ If you are on _Windows_: Copy the script ``node_modules\berry-frame\bin\berry.ba
 to BERRY_HOME.
 
 If you are on the _Raspberry Pi_: Copy `` node_modules/berry-frame/bin/berry``
-to BERRY_HOME and make it executable.
+to BERRY_HOME and make it executable. Also call ``sudo apt-get install libasound2-dev``
+because its header file will be needed during the Raspi-specific second installation step.
 
 Now call ``berry`` (or ``./berry`` on the Raspi) to check if the installation works.
 You should see a _syntax help_ on how to start a _berry_.
