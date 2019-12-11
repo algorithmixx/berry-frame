@@ -92,9 +92,36 @@ class Hardware {
 			
 			if (process.platform === "win32" || emulate) {
 				this.setAll("emulate",true);
-				this.setAll("log",1);
 			}
-						
+			
+			// validate against schema (if not in silent mode)
+			if (!silent) {
+				Logger.info("Hardware     validating description");
+				var ajv = new (require("ajv"))({verbose:true});
+				var valid=true;
+				for(var id in this.elms) {
+					var elm = this.elms[id];
+					if (!elm.type) {
+						Logger.error(this.type+" HWD: element '"+id+"' has no 'type' property");
+						valid=false;
+						continue;
+					}
+					else if (!Hardware.schema[elm.type]) {
+						Logger.error(this.type+" HWD: element '"+id+"' has unknown type '"+elm.type+"'");
+						valid=false;
+						continue;
+					}
+					if (!ajv.validate(Hardware.schema[elm.type],elm)) {
+						Logger.error(this.type+" HWD: element '"+id+"' does not conform to schema for '"+elm.type+"'");
+						for (var error of ajv.errors) {
+							Logger.error(error);
+						}
+						valid=false;
+					}
+				}
+				if (!valid) return false;
+			}
+			
 			// load the specific application class
 			// Such a class will typically register some methods at the device classes.
 			// its (single) instance can be accessed by target:"app" in a harware description file
@@ -191,7 +218,6 @@ class Hardware {
 			Logger.info("Hardware     creating "+elm.type+": "+elm.id+"  ("+elm.name+") "+(elm.emulate?" (emulation)":""));
 
 			if (isMissing(elm.name))	elm.name	= elm.id;
-			if (isMissing(elm.log)	)   elm.log	    = 0;
 			if (isMissing(elm.emulate)) elm.emulate = false;
 			
 			if		(elm.type=="LED") {
@@ -245,13 +271,9 @@ class Hardware {
 					(elm.downUp || elm.down || elm.up) ? "both":"rising",
 					elm.emulate
 				);
-				if (isPresent(elm.pressed)) {
-					Logger.info("Hardware     installing onPressed watcher for "+elm.id);
-					elm.dev.onPressed(this.onButtonPressed,true);
-				}
-				if (isPresent(elm.downUp) || isPresent(elm.down) || isPresent(elm.up)  ) {
-					Logger.info("Hardware     installing onDownUp watcher for "+elm.id);
-					elm.dev.onChanged(this.onButtonDownUp,true);
+				if (isPresent(elm.pressed) || isPresent(elm.downUp) || isPresent(elm.down) || isPresent(elm.up)  ) {
+					Logger.info("Hardware     installing watcher for "+elm.id);
+					elm.dev.onChanged(this.onButtonChanged,true);
 				}
 			}
 			else if (elm.type=="WS2801") {		
@@ -296,12 +318,13 @@ class Hardware {
 			}
 			else if (elm.type=="DS1820") {		
 				// create temperature sensor (1-wire)
-				var monitor={};
+				var monitor=null;
 				if (elm.monitor) {
-					if (elm.monitor.display) {
-						var target= this.elms[elm.monitor.display];
-						monitor.func = target.dev.setValue.bind(target.dev);
-						monitor.interval=elm.monitor.interval;
+					if (elm.monitor.elm) {
+						var target= this.elms[elm.monitor.elm];
+						monitor={};
+						monitor.func = target.dev[elm.monitor.cmd].bind(target.dev);
+						monitor.interval=elm.monitor.interval || 5000;
 					}
 				}
 				var below={};
@@ -372,37 +395,69 @@ class Hardware {
 		}
 	}
 	
-	onButtonPressed(rc,button,type,value) {
-		// toggle the outputs linked to a button which has been pressed (= pushed & released)
-
-		var but = theHardware.elms[button.id];
-		var actions = typeof but.pressed == "array" ? but.pressed : [but.pressed];
-		for (var action of actions) {
-			var elms= action.elms || [action.elm];
-			for (var elm of elms) {
-				Logger.log("Hardware     "+button.id+" pressed, action: "+JSON.stringify(action));
-				if 	(action.elm=="app" && theHardware.appObject) theHardware.appObject[action.cmd](but,value,action);
-				else theHardware.elms[elm].dev[action.cmd](but,value,action);
-			}
-		}
-	}
-	
-	onButtonDownUp(rc,button,type,value) {
+	onButtonChanged(rc,button,type,value) {
 		// activates the outputs linked to a button while it is pushed
 
 		var but = theHardware.elms[button.id];
 		var actions = [];
-		if		(value==1 && isPresent(but.down)  ) actions=actions.concat(but.down  );
-		else if (value==0 && isPresent(but.up)    ) actions=actions.concat(but.up    );
-		if		(			 isPresent(but.downUp)) actions=actions.concat(but.downUp);
+		if		(value==1 && isPresent(but.down)   ) actions=actions.concat(but.down    );
+		else if (value==0 && isPresent(but.up)     ) actions=actions.concat(but.up      );
+		if		(			 isPresent(but.downUp) ) actions=actions.concat(but.downUp  );
+		if		(value==2 && isPresent(but.pressed)) actions=actions.concat(but.pressed );
 
-		for (var action of actions) {
-			var elms= action.elms || [action.elm];
-			for (var elm of elms) {
-				Logger.log("Hardware     "+button.id+" "+value+", action: "+JSON.stringify(action));
-
-				if 	(action.elm=="app" && theHardware.appObject) theHardware.appObject[action.cmd](but,value,action);
-				else theHardware.elms[elm].dev[action.cmd](but,value,action);
+		for (let action of actions) {
+			let elms= (Array.isArray(action.elm)) ? action.elm : [action.elm];
+			for (let elm of elms) {
+				Logger.log("Hardware     "+button.id+" "+value+", elm="+elm+", action: "+JSON.stringify(action));
+				let obj = (elm=="app") ? theHardware.appObject : theHardware.elms[elm];
+				
+				// check when condition (requires elm to have a getValue() method)
+				if (isPresent(action.when) && obj.dev.getValue()!=action.when) continue;
+				
+				// clear delay timer if requested
+				if (action.clear) {
+					if (isMissing(theTimers[elm])) theTimers[elm]={};
+					if (isPresent(theTimers[elm][action.cmd])) {
+						clearTimeout(theTimers[elm][action.cmd]);
+						delete theTimers[elm][action.cmd];					
+					}
+					continue;
+				}
+				
+				if (action.after) {
+					// isolated new timer
+					setTimeout(
+						function() {
+							if 	(elm=="app") obj[action.cmd](but,value,action);
+							else			 obj.dev[action.cmd](action.arg);	
+						}, action.after
+					);
+				}
+				else if (action.delay) {
+					// timer bound to the element
+					if (isMissing(theTimers[elm])) theTimers[elm]={};
+					if (isPresent(theTimers[elm][action.cmd])) {
+						// for "once-timers": ignore further triggering
+						if (action.once) continue;
+						// for normal timers: clear timer and create a new one with updated settings 
+						clearTimeout(theTimers[elm][action.cmd]);
+						delete theTimers[elm][action.cmd];
+					}
+					theTimers[elm][action.cmd] =  setTimeout(
+						function() {
+							if 	(elm=="app") obj[action.cmd](but,value,action);
+							else			 obj.dev[action.cmd](action.arg);
+							delete theTimers[elm][action.cmd];
+						}, action.delay
+					);
+				}
+				else {
+					// direct action, no timers involved
+					if 	(elm=="app") obj[action.cmd](but,value,action);
+					else {
+						obj.dev[action.cmd](action.arg);
+					}
+				}
 			}
 		}
 	}
@@ -524,6 +579,7 @@ class Hardware {
 	}
 	
 }
+
 Hardware.getApiDescription = function() {
 	return [
 		{	cmd:"getSetup",
@@ -540,8 +596,207 @@ Hardware.getApiDescription = function() {
 		},
 	];
 }
+
+Hardware.action = {
+	type: "object", 
+	properties: {
+		elm: {
+			anyOf: [
+				{ type: "string",},
+				{ type: "array",items: { type: "string" } }
+			]
+		},
+		cmd:		{ type: "string",		},
+		arg: {
+			anyOf: [
+				{ type: "string" },
+				{ type: "object" },
+			]
+		},
+		when: {
+			anyOf : [ { type:"string"}, {type:"number"}, {type:"boolean"} ],
+			description: "perform cmd only if this value matches the getValue() method of elm",
+		},
+		after:	{ type: "integer", description: "a new, isolated timer (msec)"			},
+		delay:	{ type: "integer", description: "a delay timer (msec) bound to the element",	},
+		once:	{ type: "boolean", description: "if true: do not change a delay timer which has already been scheduled", default: false	},
+		clear:	{ type: "boolean", description: "if true: clear a scheduled delay timer", default: false	},
+	},
+	additionalProperties: true,
+	required: ["elm","cmd"],
+};
+Hardware.actionStrict = JSON.parse(JSON.stringify(Hardware.action));
+Hardware.actionStrict.additionalProperties=false;
+
+// the schema for HWD element  types
+Hardware.schema= {
+	Action: {
+		definitions: {
+			action: 	Hardware.actionStrict,
+			actions: {
+				anyOf: [
+					{	$ref: "#/definitions/action"	},
+					{	type: "array", items: { $ref: "#/definitions/action" },	},
+				]
+			}
+		},
+		properties: {
+			options: {
+				anyof: [
+					{	type: "array", items: { type: "string" } },
+					{	$ref: "#/definitions/actions" },
+				]
+			},
+			selected:	{ $ref: "#/definitions/actions" },
+		},
+	},	
+	Button: {
+		definitions: {
+			action: 	Hardware.actionStrict,
+			actions: {
+				anyOf: [
+					{	$ref: "#/definitions/action"	},
+					{	type: "array", items: { $ref: "#/definitions/action" },	},
+				]
+			}
+		},
+		properties: {
+			debounce:	{ type: "integer", description: "debouncing time in msecs, reasonable values are 30..80"},
+			down:		{ $ref: "#/definitions/actions" },
+			downUp:		{ $ref: "#/definitions/actions" },
+			up:			{ $ref: "#/definitions/actions" },
+			pressed:	{ $ref: "#/definitions/actions" },
+		},
+	},
+	Display: {
+		properties: {
+			color:		{ type: "string", description: "use color name or #RGB notation" },
+			xDim:		{ type: "integer", description: "number of chars horizontally"},
+			yDim:		{ type: "integer", description: "number of lines vertically" },
+		},
+	},
+	DS1820: {
+		definitions: {
+			action: 	Hardware.action,	// allow additional properties like interval, value
+			actions: {
+				anyOf: [
+					{	$ref: "#/definitions/action"	},
+					{	type: "array", items: { $ref: "#/definitions/action" },	},
+				]
+			}
+		},
+		properties: {
+			addresse:	{ type: "string", description: "unique ID, on the Raspi look at /sys/bus/w1/devices/*" },
+			monitor:	{
+				$ref: "#/definitions/actions",
+				interval: { type: "number", description: "polling interval in msec" },
+			},
+			below:	{ 
+				$ref: "#/definitions/actions",
+				value: { type:"number", description: "threshold in °C" },
+			},
+			between:	{ 
+				$ref: "#/definitions/actions",
+				value: { type:"array", description: "thresholds in °C", items: [{type:"number"},{type:"number"}] },
+			},
+			above:	{ 
+				$ref: "#/definitions/actions",
+				value: { type:"number", description: "threshold in °C" },
+			},
+		}
+	},
+	FrontPanel: {
+	},
+	Label: {
+	},
+	LED: {
+	},
+	Microphone: {
+	},
+	MPU6500: {
+		properties: {
+			image3d:	{ type: "string", description: "e.g. xyz.glb, file must be in client/img directory"	},
+			orientation:{ 
+				type: 	"array",
+				minItems:3,
+				items: [ {type:"integer"}, {type:"integer"}, {type:"integer"} ],
+				description: "x,y,z direction of sensor in default position",
+				default: [0,0,0],
+			},
+		},
+	},
+	PWDevice: {
+		properties: {
+			range:		{ type: "array", items: [ {type: "number"}, {type: "number"} ], default:[0,1] },
+			duty:		{ type: "array", items: [ {type: "number"}, {type: "number"} ], default:0 },
+			frequency:	{ type: "number", description: "in Hz", default: 50},
+			drives:		{ tpye: "string", description: "id of element connected to the PWM port", },
+		}
+	},
+	Speakers: {
+	},
+	TextInput: {		
+		definitions: {
+			action: 	Hardware.actionStrict,
+			actions: {
+				anyOf: [
+					{	$ref: "#/definitions/action"	},
+					{	type: "array", items: { $ref: "#/definitions/action" },	},
+				]
+			}
+		},
+		properties: {
+			rows:		{ type: "integer" 	},
+			cols:		{ type: "integer" 	},
+			changed:	{ $ref: "#/definitions/actions" },
+		}
+	},
+	WS2801: {
+		properties: {
+			spi:		{ type: "string", description: "0.0, 0.1, 1.0 or 1.1" 	},
+			reverse: 	{ type: "integer", minimum:0, maximum:1, default:0 		},
+			numLEDs:	{ type: "integer", minimum:1							},
+		},
+		required:	["spi","numLEDs"],
+	},
+}
+// merge inherited properties into each element schema
+for (var elm in Hardware.schema) {
+	var schema = Hardware.schema[elm];
+
+	// all elements are objects
+	schema.type = "object";
+	if (!schema.properties) schema.properties = {};
+	
+	// do not allow unknown properties
+	schema.additionalProperties = false;
+	
+	// we will add some required properties
+	if (!schema.required) schema.required=[];
+
+	// common properties for all element types
+	schema.properties.id		= { type: "string", description: "a unique ID for the hardware element" };
+	schema.required.push("id");
+	schema.properties.type  	= { type: "string", description: "a valid device type name (see berry-frame/hw_devices/* )" };
+	schema.required.push("type");
+	schema.properties.name  	= { type: "string", description: "a name used as a label in the UI" };
+	schema.properties.title		= { type: "string", description: "a hover text used in the UI" };
+	schema.properties.style		= { type: "string", description: "CSS used to style the layout in the UI" };
+	schema.properties.emulate	= { type: "boolean",description: "true forces emulation even on the Raspi" };
+
+	// properties for GPIO devices
+	if (["Button","LED","PWDevice","DS1820",].includes(elm)) {
+		schema.properties.gpio  = { type: "integer", description: "GPIO number according to BCM schema" };
+		schema.properties.color = { type: "string", description: "use color name or #RGB notation" };
+		schema.properties.cable = { type: "string", description: "cable colors/numbers used to connect the GPIO device" };
+		schema.required.push("gpio");
+	}
+
+};
+
 // =========================================================================================================
 
+var theTimers = {};
 var theHardware = new Hardware();
 module.exports.theHardware = theHardware;
 

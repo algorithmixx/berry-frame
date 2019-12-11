@@ -25,9 +25,9 @@ part will use some (minimalistic) emulation for missing hardware peripherals.
 __berry-frame__ is not a "graphical tool for drawing your programming logic".
 
 __berry-frame__ expects a structured description of your hardware peripherals 
-in JSON-syntax ('``HWD``'). The ``HWD`` notation also defines some standard 
-rules for _visual representation_ of hardware elements in the browser UI 
-and for the general _flow of information_ between UI elements and 
+in JSON-syntax ('``HWD``') based on a defined grammar. The ``HWD`` notation 
+also defines some standard rules for _visual representation_ of hardware elements
+in the browser UI and for the general _flow of information_ between UI elements and 
 hardware devices connected to the Raspi´s GPIO ports (or being emulated).
 
 As soon as things get more complex, you will have to provide some Javascript

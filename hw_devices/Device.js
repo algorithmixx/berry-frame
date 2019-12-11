@@ -75,7 +75,7 @@ class Display extends Device {
 
 	println(text) {
 		Logger.log("Display      "+text);
-		this.contents[this.yPos]=text.substr(0,this.xDim);	// ignore horizontal overflow
+		this.contents[this.yPos]=(""+text).substr(0,this.xDim);	// ignore horizontal overflow
 		if(++this.yPos>this.yDim) {
 			this.contents.shift();
 			this.yPos--;
@@ -248,35 +248,19 @@ class Button extends InputDevice {
 			this.dev = new Gpio(gpio,"in","both",{debounceTimeout:debounce,activeLow:true});
 		}
 	}
-
-	onPressed(watcher,useInterrupts) {
-		// define a method to be called whenever the signal changes due to a "pressed" action
-
-		this.onPressedWatcher=watcher;
-		if (!useInterrupts) return;
-		
-		var that=this;
-		this.dev.watch(function(err,value,gpio) {
-			if (err) { Logger.error("gpio watching for Pressed "+that.gpio); return; }
-			Logger.log("IODevice     signal changed: "+that.constructor.name+":"+that.id+", value="+value+" at gpio "+gpio);
-			that.onPressedWatcher(0,that,that.constructor.name,value);
-		});
-	}
 		
 	press(state) {
 		// simulate a button event
-		if (state=="pressed") {
-			if (this.onPressedWatcher) this.onPressedWatcher(0,this,"Button",1);
-		}
-		else {
-			if (this.watcher) this.watcher(0,this,"Button",state=="down" ? 1 : 0);
-		}
+		if (this.watcher) this.watcher(0,this,"Button",state=="down" ? 1 : (state=="up" ? 0 : 2));
 	}
 }
 Button.getApiDescription = function () {	
 	return [
 		{	cmd:"press",
-			effect:"simulates a button press and release action"
+			effect:"simulates a button down, up or press action",
+			args: [
+				{ name: "state", meaning: "on of down,up,pressed" },
+			],
 		},
 		{	cmd:"down",
 			effect:"simulates a button which was pushed and is now being held down"
@@ -307,43 +291,17 @@ class OutputDevice extends IODevice {
 		if (this.watcher) this.watcher(0,this,this.constructor.name,value);
 	}
 	
-	on(but,value,action) {
-		if (action) Logger.log("LED          on  : ",action);
-		if (action && ((action.when=="off" && this.getValue()!=Gpio.LOW) || (action.when=="on" && this.getValue()!=Gpio.HIGH))) return; 
-		if (action && action.myDelay) {
-			var that=this;
-			setTimeout(function() { that.setValue(Gpio.HIGH); }, action.myDelay);
-		}
-		else if (action && action.Delay) {
-			if (this.delayOn) clearTimeout(this.delayOn);
-			var that=this;
-			this.delayOn = setTimeout(function() { that.setValue(Gpio.HIGH); }, action.Delay);
-		}
-		else {
-			this.setValue(Gpio.HIGH);
-		}
+	on() {
+		this.setValue(Gpio.HIGH);
 	}
 		
-	off(but,value,action) {
-		if (action) Logger.log("LED          off : ",action);
-		if (action && ((action.when=="off" && this.getValue()!=Gpio.LOW) || (action.when=="on" && this.getValue()!=Gpio.HIGH))) return; 
-		if (action && action.myDelay) {
-			var that=this;
-			setTimeout(function() { that.setValue(Gpio.LOW); }, action.myDelay); 
-		}
-		else if (action && action.Delay) {
-			if (this.delayOff) clearTimeout(this.delayOff);
-			var that=this;
-			this.delayOff = setTimeout(function() { that.setValue(Gpio.LOW); }, action.Delay);
-		}
-		else {
-			this.setValue(Gpio.LOW);
-		}
+	off() {
+		this.setValue(Gpio.LOW);
 	}
 	
-	toggle(but,value,action) {
-		if (this.isOn()) this.off(but,value,action);
-		else			 this.on (but,value,action);
+	toggle() {
+		if (this.isOn()) this.off();
+		else			 this.on ();
 	}
 	
 	release() {
@@ -453,7 +411,7 @@ class LED extends OutputDevice {
 		that.runTimer=null;
 		
 		// invoke finished callback
-		if (isPresent(that.finished) && that.finished) that.finished(that,now-that.blinkStartedAt);
+		if (isPresent(that.finished) && typeof that.finished=="function") that.finished(that,now-that.blinkStartedAt);
 		that.blinkStartedAt=0;
 	}
 	

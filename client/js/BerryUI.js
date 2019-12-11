@@ -106,7 +106,7 @@ class BerryUI {
 			}
 
 			// handle a response describing the state of one or all hardware elements
-			if (response.states) {
+			if (response.states && my.hardwares[hw]) {
 				for (var device of response.states) {
 					if (device.type=="WS2801" && device.value) {
 						// LED strip (regardless of id, we only have one)
@@ -471,9 +471,11 @@ class BerryUI {
 			}
 			else if (elm.type=="Action") {
 				if (elm.options.length==1) {
-					// Action without options
+					var value = elm.options[0].value;
+					if (!value) value = elm.options[0]; 
+					// Action without alternatives
 					it=	"<button id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style='"
-						+elm.style+"' onclick='app.sendAction("+hw+",{id:\""+elm.id+"\"});'>"+elm.name+"</button>";
+						+elm.style+"' onclick='app.sendAction("+hw+",{id:\""+elm.id+"\",value:\""+value+"\"});'>"+value+"</button>";
 				}
 				else {
 					// Action with multiple string values or with multiple option objects (value, elm, cmd, arg)

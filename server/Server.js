@@ -401,10 +401,7 @@ class Server {
 			else if (target.type=="Button") {
 				// Button action
 				if (this.can(socket,"Button",target.id,["pressed","down","up"],action.state)=="ok") {
-					// issuing a button press command will change the signal of the associated LED (see Berry.js)
-					// this change will in turn trigger an interrupt; as a consequence the changed state
-					// will be transferred to all connected clients
-					// Logger.log("Server       Button "+target.id+ " -- "+action.state);
+					Logger.log("Server       Button "+target.id+ " -- "+action.state);
 					target.dev.press(action.state);
 					return {type:"Button",id:target.id,state:action.state};
 				}
@@ -467,8 +464,8 @@ class Server {
 			}
 			else if (target.type=="Display") {
 				// client wants the msg to be shown
-				target.dev.println(action.msg);
-				return {type:"Display",id:target.id,msg:action.msg};
+				target.dev.println(action.arg);
+				return {type:"Display",id:target.id,msg:action.arg};
 			}
 			else if (target.type=="TextInput") {
 				// client sends text input

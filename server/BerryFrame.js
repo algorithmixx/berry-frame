@@ -26,7 +26,7 @@ class BerryFrame {
 		// get current script name
 
 		this.scriptName	 = process.argv[1].replace(/.*[/\\]/,'').replace(/[.]js$/,'');
-		this.versionId	 = "1.1.0";
+		this.versionId	 = "1.2.0";
 		
 		// find known Berry types and their default properties (description, port, rev, ..)
 		this.berryTypes = this.findBerryTypes();
@@ -234,7 +234,7 @@ class BerryFrame {
 		if (this.cmdLine==null) return;
 		
 		// set default configuration
-		if (!theHardware.loadDescription(this.berryType.name,this.name,this.revision,this.emulate)) return;
+		if (!theHardware.loadDescription(this.berryType.name,this.name,this.revision,this.emulate,false)) return;
 
 		// "build" the hardware
 		if (!theHardware.build(this.name,this.versionId)) return;
@@ -282,7 +282,8 @@ class BerryFrame {
 				file: "./zip/"+berry+".zip"
 			});
 			Logger.info("BerryFrame   downloaded "+localZip);
-			require('cross-zip').unzipSync(localZip, ".");
+			if (!fs.existsSync("./"+berry)) fs.mkdirSync("./"+berry);
+			require('cross-zip').unzipSync(localZip, "./"+berry);
 			Logger.info("BerryFrame   unzipped "+localZip);
 		}
 		catch(e) {

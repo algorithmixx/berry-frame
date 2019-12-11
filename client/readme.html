@@ -125,8 +125,8 @@
 	a web server, a registration service for servers and a generic web client.
 
 	__berry-frame__ applications (short: _berries_) are formally defined by a
-	hardware definition file (HWD) and one or more Javascript classes which have 
-	to be written by the application designer.
+	hardware definition file (HWD, validated against a defined grammar)
+	and one or more Javascript classes which have to be written by the application designer.
 
 	__berry-frame__ comes with a generic web client which can display all supported hardware 
 	device types in 'basic optics'. Application specific code can be added to enhance
@@ -309,22 +309,22 @@
 	
 ## <a name="c5"/> 5) SUPPORTED DEVICE TYPES ( layer: BHA / AHA )
 
+	* _Action_ : Actions are virtual (non-physical) devices which appear ONLY in the web UI;
+	  they can be used to assist in testing/debugging.
 	* _Button_: A push button or a switch button with configurable debouncing
-	* _PWDevice_: A device that can take hardware controlled pulse width signals (like a servo motor)
-	* _LED_: A light emitting diode with configurable color and a flexible blinking method
-	* _WS2801_: An SPI controlled strip of RGB LEDs where each LED can be individually controlled
-	* _DS1820_: A One Wire thermo sensor
-	* _PMU6500_: A very common motion sensor which is connected through I²C.
-	* _TextInput_: A text input area (a virtual device, only available in the browser UI)
 	* _Display_: A generic character display (EMULATION ONLY)
-	* _Speakers_: A sound producing equipment which can be accessed through standard drivers
-	* _Microphone_: A sound recording equipment which can be accessed through standard drivers
+	* _DS1820_: A One Wire thermo sensor
 	* _FrontPanel_: A built-in device type which corresponds to the physical hardware housing
-	  It is represented in the client UI as a rectangular screen area which is a base for the
+	  It is represented in the client UI as a rectangular screen area which is the base for the
       relative positioning of all other peripheral elements (device representations)
 	* _Label_ : A fixed element on the front panel of a _berry_
-	* _Action_ : Actions are virtual (non-physical) devices which appear ONLY in the web UI;
-	  they can be used to make API calls or to assist in testing/debugging.
+	* _LED_: A light emitting diode with configurable color and a flexible blinking method
+	* _Microphone_: A sound recording equipment which can be accessed through standard drivers
+	* _MPU6500_: A very common motion sensor which is connected through I²C.
+	* _PWDevice_: A device that can take hardware controlled pulse width signals (like a servo motor)
+	* _Speakers_: A sound producing equipment which can be accessed through standard drivers
+	* _TextInput_: A text input area (a virtual device, only available in the browser UI)
+	* _WS2801_: An SPI controlled strip of RGB LEDs where each LED can be individually controlled
 	  
 	Device types missing: step motor (possibly connected via GPIO), more 1-wire sensors,
 	force sensors, AD-converters, DA-converters, relais, .. and many more ..
