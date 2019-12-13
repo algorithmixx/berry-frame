@@ -325,7 +325,11 @@
 	* _Speakers_: A sound producing equipment which can be accessed through standard drivers
 	* _TextInput_: A text input area (a virtual device, only available in the browser UI)
 	* _WS2801_: An SPI controlled strip of RGB LEDs where each LED can be individually controlled
-	  
+	
+	Please notice: the speakers use both hardware PWM signals of the Raspi. So if you want to 
+	play audio files you cannot use the _PWDevice_ in combination with the (one or two) 
+	hardware-controlled GPIO port(s).
+	
 	Device types missing: step motor (possibly connected via GPIO), more 1-wire sensors,
 	force sensors, AD-converters, DA-converters, relais, .. and many more ..
 
@@ -874,6 +878,9 @@ Action: {
 	
 	* call ``sudo apt-get install libasound2-dev`` 
 	because its header file will be needed during the next step.
+
+	* call ``sudo apt-get install zip unzip`` 
+	because it will be needed for downloading berries from the shop.
 
 	* call ``./berry`` and __wait until the second part of the installation has completed__.
 	This can take several minutes.

@@ -36,16 +36,23 @@ class PWDevice extends Device {
 		else {
 			this.pwmType="soft";
 		}
-		
+		frequency |= 50;
+
+		this.frequency	= frequency;
+		this.period		= Math.round(1000000 / frequency);  // micro secs
+
 		if (this.emulate) {
-			this.dev = new (require('../hw_protocols/PWMWin.js').PWMWin)({pin:pwmPin,frequency:frequency|50});
+			this.dev = new (require('../hw_protocols/PWMWin.js').PWMWin)({gpio:gpio, pin:pwmPin,frequency:this.frequency,period:this.period});
 		}
 		else if (this.pwmType=="hard") {
-			this.dev = new (require("raspi-pwm").PWM)({pin:pwmPin,frequency:frequency|50});
+			this.dev = new (require("raspi-pwm").PWM)({pin:pwmPin,frequency:this.frequency});
 		}	
 		else {
-			this.dev = new (require("raspi-soft-pwm").SoftPWM)({pin:pwmPin,frequency:frequency|50});
-		}	
+			this.dev = require("rpio-pwm");
+			this.dma=14; 			// direct memory access channel (DMA), hopefully unused by other applications
+			this.dev.setup(1); 		// 1 micro second as resolution
+			this.pwm.init_channel(this.dma, Math.round(1000000 / frequency));
+		}
 		this.direction	= "out";
 		this.watcher	= null;
 		this.lowerBound = 0;
@@ -65,10 +72,19 @@ class PWDevice extends Device {
 		if		(this.extraBound>this.lowerBound && value < this.extraBound) value=this.lowerBound;
 		else if (value<this.lowerBound) value=this.lowerBound;
 		else if (value>this.upperBound) value=this.upperBound;
-		this.dev.write(value);
+		
+		if (this.pwmType=="hard") this.dev.write(value);
+		else {
+			// start pulses always from 0, calculate duration based on value an d frequency
+			this.dev.add_channel_pulse(this.dma, this.gpios[0], 0, Math.round(1000000/this.frequency*value));
+		}
 		if (this.watcher) this.watcher(0,this,this.constructor.name,value);
 	}
 
+	clear() {
+		this.dev.clear_channel(this.dma,this.gpios[0]);
+	}
+	
 	getValue() {
 		return this.dev.dutyCycle;
 	}

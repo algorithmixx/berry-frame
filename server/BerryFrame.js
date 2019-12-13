@@ -26,7 +26,7 @@ class BerryFrame {
 		// get current script name
 
 		this.scriptName	 = process.argv[1].replace(/.*[/\\]/,'').replace(/[.]js$/,'');
-		this.versionId	 = "1.2.1";
+		this.versionId	 = "1.2.2";
 		
 		// find known Berry types and their default properties (description, port, rev, ..)
 		this.berryTypes = this.findBerryTypes();
@@ -161,7 +161,7 @@ class BerryFrame {
 		
 		// show versionId and exit
 		if (isPresent(getopt.options["v"])) { 
-			Logger.info("BerryFrame: version "+this.versionId);
+			Logger.info("berry-frame: version "+this.versionId);
 			return null;
 		}
 
@@ -177,10 +177,16 @@ class BerryFrame {
 			return null;
 		}
 
-		if (getopt.options["zip"] && getopt.argv[0]=="all") {
-			for(var berry in this.berryTypes) {
+		if (getopt.options["zip"] && getopt.argv[0]) {
+			var arg = getopt.argv[0];
+			var berries= (arg=="all") ? Object.keys(this.berryTypes) : [arg];
+			var berriesCount = berries.length;
+			for(let berry of berries) {
 				if (berry=="Master") continue;
-				this.zipBerry(berry);
+				this.zipBerry(berry,function() {
+					berriesCount--;
+					if (arg=="all" && berriesCount<=1 || arg!="all" && berriesCount<=0) process.exit(0);
+				});
 			}
 			return null;
 		}
@@ -190,11 +196,6 @@ class BerryFrame {
 		// check if berryType is known
 		if (!this.berryTypes[berryTypeName]) {
 			Logger.error("Berry        unknown berryType: "+berryTypeName);
-			return null;
-		}
-
-		if (getopt.options["zip"]) {
-			this.zipBerry(berryTypeName);
 			return null;
 		}
 		
@@ -230,8 +231,10 @@ class BerryFrame {
 	
 	load() {
 		// create devices and start processing
-		
-		if (this.cmdLine==null) return;
+
+		if (this.cmdLine==null) {
+			return;
+		}
 		
 		// set default configuration
 		if (!theHardware.loadDescription(this.berryType.name,this.name,this.revision,this.emulate,false)) return;
@@ -257,7 +260,8 @@ class BerryFrame {
 	
 	async installBerry(berry) {
 		// assume that berry is the name of a berry in the berry-shop
-
+		// ATTENTION: this function will terminate the current process.
+		
 		if (berry.charAt(0)==".") return;
 
 		const fs = require('fs');
@@ -265,7 +269,7 @@ class BerryFrame {
 		// do not clobber existing berry
 		if (fs.existsSync("./"+berry)) {
 			Logger.error("BerryFrame   cannot download berry '"+berry+"'. Local directory already exists");
-			return;
+			process.exit(0);
 		}
 
 		var url = "https://followthescore.org/berry/zip/"+berry+".zip";
@@ -274,27 +278,64 @@ class BerryFrame {
 		try {
 			// make zip directory
 			if (!fs.existsSync("./zip")) fs.mkdirSync("zip");
+			var zipFile = "./zip/"+berry+".zip"; 
 			// remove current zip (if existing)
-			if (fs.existsSync("./zip/"+berry+".zip")) fs.unlinkSync("./zip/"+berry+".zip"); 
-			const getFileFromUrl = require("@appgeist/get-file-from-url");
-			const localZip = await getFileFromUrl({
-				url: url,
-				file: "./zip/"+berry+".zip"
+			if (fs.existsSync(zipFile)) fs.unlinkSync(zipFile); 
+			// download and unzip
+			this.download(url,zipFile,function() {
+				Logger.info("BerryFrame   downloaded "+zipFile);
+				if (process.platform=="win32") {
+					const Zip = require('node-7z-forall');
+					var archive = new Zip();
+					archive.extractFull(zipFile,".").then(function() { 
+						Logger.info("BerryFrame   unzipped "+zipFile);		
+					});
+				}
+				else {
+					Logger.info("BerryFrame   unzipping "+zipFile);		
+					var childProc = require('child_process'); 
+					childProc.spawnSync('unzip',[zipFile,"-d","."], {stdio:"inherit"});
+					Logger.info("BerryFrame   unzipped "+zipFile);	
+					process.exit(0);
+				}
 			});
-			Logger.info("BerryFrame   downloaded "+localZip);
-			if (!fs.existsSync("./"+berry)) fs.mkdirSync("./"+berry);
-			require('cross-zip').unzipSync(localZip, "./"+berry);
-			Logger.info("BerryFrame   unzipped "+localZip);
 		}
 		catch(e) {
-			Logger.error("cannot download "+url);
+			Logger.error("cannot download and install "+url,e);
+			process.exit(0);
 		}
 	}
 	
-	async zipBerry(berry) {
-		// create a ZIP file for the currently running berry
+	download(url, dest, cb) {
+		const https = require("https");
+		var file = fs.createWriteStream(dest);
+		console.log("requesting "+dest+" from "+url);
+		var request = https.get(url, function(response) {
+			response.pipe(file);
+			file.on('finish', function() {
+				file.close(cb);  // close() is async, call cb after close completes.
+			});
+		})
+		.on('error', function(err) { // Handle errors
+			fs.unlink(dest); // Delete the file async. (But we don't check the result)
+			Logger.error(err.message);
+		});
+	}
+	
+	zipBerry(berry,cb) {
+		// create a ZIP file for a berry
 
 		const fs = require('fs');
+
+		// make sure directory exists
+		if (!fs.existsSync("./"+berry) || !fs.existsSync("./"+berry+"/server")) {
+			Logger.error("BerryFrame   cannot zip berry '"+berry+"'. Local directory not found.");
+			cb(berry);
+			process.exit(1);
+			return;
+		}
+
+
 		// make zip directory
 		if (!fs.existsSync("./zip")) fs.mkdirSync("zip");
 		
@@ -307,7 +348,8 @@ class BerryFrame {
 			// under non-windows systems check if the zip archive is up to date; 
 			// (win32 modification times of directories are not reliable)
 			if (process.platform!="win32" && fs.statSync("./"+berry).mtime < modified) {
-				Logger.log("BerryFrame   zip was up to date ("+modified+")");
+				Logger.log("BerryFrame   "+berry+".zip was up to date ("+modified+")");
+				cb(berry);
 				return;
 			}
 			// remove current zip file (if existing)
@@ -315,13 +357,28 @@ class BerryFrame {
 		}
 
 		// create zip file
-		Logger.log("BerryFrame   creating "+zipFile);		
+
 		try {
-			require('cross-zip').zipSync("./"+berry,zipFile);
+			if (process.platform=="win32") {
+				const Zip = require('node-7z-forall');
+				var archive = new Zip();
+				archive.add(zipFile,"./"+berry).then(function() { 
+					Logger.info("BerryFrame   created "+zipFile);		
+					cb(berry);
+				});
+			}
+			else {
+				var childProc = require('child_process'); 
+				childProc.spawnSync('zip',["-r",zipFile,"./"+berry], {stdio:"inherit"});
+				Logger.info("BerryFrame   created "+zipFile);		
+				cb(berry);
+			}
 		}
 		catch(e) {
-			Logger.error("BerryFrame: cannot create "+zipFile);
+			Logger.error("BerryFrame: could not create "+zipFile,e);
+			cb(berry);
 		}
+
 	}
 
 	async checkInstallation() {
@@ -334,6 +391,7 @@ class BerryFrame {
 			if (sys.manufacturer=="Raspberry Pi Foundation") {
 				try {
 					require("onoff");	// if the module has been installed, everything is fine
+					// console.log("berry-frame: running on Raspi, 'onoff' is installed.");
 				}
 				catch(err) {
 					var childProc = require('child_process'); 
@@ -356,7 +414,7 @@ class BerryFrame {
 								"raspi-i2c@^6.2.4",
 								"raspi-onewire@^1.0.1",
 								"raspi-pwm@^6.0.0",
-								"raspi-soft-pwm@^6.0.2",
+								"rpio-pwm@^0.2.1",
 								"speaker@^0.3.1"
 							],
 							{stdio:"inherit"}
