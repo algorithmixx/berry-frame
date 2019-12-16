@@ -22,6 +22,29 @@ class Speakers extends Device {
 		this.watcher=null;
 	}
 
+	say(text) {
+		const fs = require('fs');
+		const util = require('util');
+		const client = new (require('@google-cloud/text-to-speech').TextToSpeechClient)();
+		const request = { 
+			input: { text: text }, 
+			voice: { 
+				languageCode: 'de-DE', 
+				ssmlGender: 'FEMALE', 
+				name: 'de-DE-Wavenet-A' 
+			}, 
+			audioConfig: { 
+				audioEncoding: 'MP3' 
+			}, 
+		}; 
+		var that=this;
+		(async () => { 
+			const [response] = await client.synthesizeSpeech(request); 
+			const writeFile = util.promisify(fs.writeFile); 
+			await writeFile(that.appType+"/audio/google-speech.mp3", response.audioContent, 'binary'); 
+		})();
+	}
+	
 	play(fileName) {
 		// play the given file (wav format)
 		// if there is already a file being played the request will be ignored.
@@ -37,34 +60,72 @@ class Speakers extends Device {
 			this.fileName = names[Math.floor(Math.random()*names.length)];
 		}	
 		if (process.platform === "win32") {
-			// actually remain silent as the client will play the sound and it may be on the same machine
 			Logger.log("Speakers     playing (Windows): "+this.fileName+" ..");
-			var player = require('node-wav-player');
-			var that=this;
-			player.play({
-				path: "./"+that.appType+"/audio/"+that.fileName+".wav",
-				sync:true,
-			}).then(() => {
-				// when music ends: reset the current fileName and send message
-				that.fileName="--";
-				if (that.watcher) that.watcher(0,that,"Speakers",that.fileName);
-			}).catch((err) => {
-				Logger.error(err);
-			});
+			if (this.fileName.toLowerCase().endsWith(".mp3")) {
+				var childProc = require('child_process'); 
+				try {
+					childProc.spawn('.\\node_modules\\berry-frame\\bin\\mpg123',
+							["./"+this.appType+"/audio/"+this.fileName], {stdio:"inherit"}
+					);
+					// we should change this only after the sub process has terminated.
+					var that=this;
+					setTimeout(function() { 
+						that.fileName="--"; 
+						if (that.watcher) that.watcher(0,that,"Speakers",that.fileName);
+					},5000);
+				}
+				catch(e) {
+					console.log(e);
+				}					
+			}
+			else if (this.fileName.toLowerCase().endsWith(".wav")) {
+				var player = require('node-wav-player');
+				var that=this;
+				player.play({
+					path: "./"+that.appType+"/audio/"+that.fileName,
+					sync:true,
+				}).then(() => {
+					// when music ends: reset the current fileName and send message
+					that.fileName="--";
+					if (that.watcher) that.watcher(0,that,"Speakers",that.fileName);
+				}).catch((err) => {
+					Logger.error(err);
+				});
+			}
+			else {
+				Logger.error("Speakers     can only play formats: wav, mp3");
+			}
 		}
 		else {
-			const Sound	= require('node-aplay');
-			var file = this.appType+"/audio/"+this.fileName+".wav";
-			var music = new Sound(file);
-			Logger.log("Speakers     playing (Raspi): "+this.fileName+" ..");
-			music.play();
-			var that=this;
-			if (that.watcher) {
-				// when music ends: reset the current fileName and send message
-				music.on ("complete", function () {
-					that.fileName="--";
-					that.watcher(0,that,"Speakers",that.fileName);
-				});
+			if (this.fileName.toLowerCase().endsWith(".mp3")) {
+				var childProc = require('child_process'); 
+				try {
+					childProc.spawn('omxplayer', ["./"+this.appType+"/audio/"+this.fileName], {stdio:"inherit"});
+					// we should change this only after the sub process has terminated.
+					var that=this;
+					setTimeout(function() { 
+						that.fileName="--"; 
+						if (that.watcher) that.watcher(0,that,"Speakers",that.fileName);
+					},5000);
+				}
+				catch(e) {
+					console.log(e);
+				}					
+			}
+			else if (this.fileName.toLowerCase().endsWith(".wav")) {
+				const Sound	= require('node-aplay');
+				var file = this.appType+"/audio/"+this.fileName;
+				var music = new Sound(file);
+				Logger.log("Speakers     playing (Raspi): "+this.fileName+" ..");
+				music.play();
+				var that=this;
+				if (that.watcher) {
+					// when music ends: reset the current fileName and send message
+					music.on ("complete", function () {
+						that.fileName="--";
+						that.watcher(0,that,"Speakers",that.fileName);
+					});
+				}
 			}
 		}
 		if (this.watcher) this.watcher(0,this,"Speakers",this.fileName);
@@ -111,7 +172,7 @@ Speakers.getApiDescription = function() {
 }
 
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-// under windows npm install speaker fails; so we can use server sound only on the Radio
+// under windows npm install speaker fails; so we can use server sound only on the Raspi
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 var audioCtx=false;

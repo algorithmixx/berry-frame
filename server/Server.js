@@ -38,7 +38,6 @@ class Server {
 	configure(appTypes,appType,name,rev,port,master,exclude,browse) {
 		// the behavior of a server depends on being of type=="server" or "master"
 		
-		
 		this.name		= name;									// a symbolic name for the server
 		this.type		= appType.name;							// "master" or any appType name
 		this.title		= appType.title;						// title
@@ -115,10 +114,18 @@ class Server {
 		// restart the application
 		Logger.info("Server       restarting ..",process.argv);
 		const fs=require('fs');
-		fs.writeFile("./restart.cmd","@rem "+new Date().toString()+"\n@"
-			+'"'+process.argv.join('" "')+'"'+"\n",
-			function(err) { if(err) Logger.error(err); }
-		);
+		if (process.platform=="win32") {
+			fs.writeFile("./restart.cmd","@rem "+new Date().toString()+"\n@"
+				+'"'+process.argv.join('" "')+'"'+"\n",
+				function(err) { if(err) Logger.error(err); }
+			);
+		}
+		else {
+			fs.writeFile("./restart.cmd","# "+new Date().toString()+"\n"
+				+'"'+process.argv.join('" "')+'"'+"\n",
+				function(err) { if(err) Logger.error(err); }
+			);			
+		}
 		theServer.stop(1000);
 	}
 	
@@ -169,7 +176,7 @@ class Server {
 		
 		// start http-listening forever
 		this.http.listen(this.port);
-		Logger.info(this.logName+'       HTTP listening at '+this.port+' ..  serving from "'+this.baseDir+'"');
+		Logger.info(this.logName+'       '+this.type+' -- HTTP listening at '+this.port+' ..  serving from "'+this.baseDir+'"');
 
 		if (this.type!="Master") {
 			// if we are a normal server: register at the master server
@@ -197,7 +204,10 @@ class Server {
 		if (this.browse) {
 			require('child_process').exec("rundll32 url.dll,FileProtocolHandler http://localhost:"+this.port);
 		}
-			
+		
+		// perform initial commands specified in the HWD
+		my.performHwdAction(theHardware.getInitActions());
+		
 		// invoke the startup function of the application object;
 		// if we have initialActions to be performed, pass a function to the application object
 		// which will allow it to perform those actions
@@ -221,11 +231,23 @@ class Server {
 		}
 		
 	}
-	
+
+	performHwdAction(actions,done) {
+		// executes the first element in the list
+		// and recursively calls itself with the shifted list
+		// so, finally all cmds will be performed one after the other
+		if (actions.length<=0) return;		
+		var action = actions.shift();
+		var actionJson = JSON.stringify(action).replace('"elm":','"id":');
+		var my=this;
+		if (actions.length>0)	this.action(null,actionJson,function(proc) { my.performHwdAction(actions,done);	});	
+		else 					this.action(null,actionJson,done);
+	}
+		
 	performAction(actions,done) {
 		// executes the first element in the list
 		// and recursively calls itself with the shifted list
-		// so, finally all cmds will be played one after the other
+		// so, finally all cmds will be performed one after the other
 		
 		var action = actions.shift();
 		// surround with {}, embrace attributes with quotes
@@ -385,8 +407,9 @@ class Server {
 				// execute dim command for a PWDevice
 				var elm=theHardware.elms[action.id];
 				if (this.can(socket,"PWDevice",action.id,["setDutyCycle"],action.cmd)=="ok") {
-					elm.dev.setDutyCycle(action.value);
-					return {type:"PWDevice",id:action.id,state:"dutyCycle="+action.value};
+					var value= (isPresent(action.value)) ? action.value : action.arg.value;
+					elm.dev.setDutyCycle(value);
+					return {type:"PWDevice",id:action.id,state:"dutyCycle="+value};
 				}
 				else if (this.can(socket,"PWDevice",action.id,["getValue","getDutyCycle"],action.cmd)=="ok") {
 					return {type:"PWDevice",id:action.id,state:elm.dev.getValue()};
@@ -450,10 +473,16 @@ class Server {
 			else if (target.type=="Speakers") {
 				// client wants a sound file to be played
 				if (this.can(socket,"Speakers",target.id,["play"],action.cmd)=="ok") {
-					var ok=target.dev.play(action.prog);
-					if (ok) return {type:"Speakers",id:target.id,state:"playing "+action.prog};
-					if (socket) this.sendError(socket,'Speakers '+target.id+' cannot play "'+action.prog);
-					return {type:"Speakers",id:target.id,state:"cannot play "+action.prog};
+					var ok=target.dev.play(action.arg);
+					if (ok) return {type:"Speakers",id:target.id,state:"playing "+action.arg};
+					if (socket) this.sendError(socket,'Speakers '+target.id+' cannot play "'+action.arg);
+					return {type:"Speakers",id:target.id,state:"cannot play "+action.arg};
+				}
+				else if (this.can(socket,"Speakers",target.id,["say"],action.cmd)=="ok") {
+					var ok=target.dev.say(action.arg);
+					if (ok) return {type:"Speakers",id:target.id,state:"saying "+action.arg};
+					if (socket) this.sendError(socket,'Speakers '+target.id+' cannot say (Google TTS) "'+action.arg);
+					return {type:"Speakers",id:target.id,state:"cannot say (Google TTS) "+action.arg};
 				}
 				else {
 					var msg="Server: unknown action for Speakers: "+JSON.stringify(action);
@@ -560,18 +589,23 @@ class Server {
 		request(uri, function(error,response, body) {
 			if (response && response.body) {
 				Logger.info("Server       got list of active servers from master: "+response.body);
-				var servers=JSON.parse(response.body);
-				// remove ourselves from the list
-				/*
-				for (var s=0;s<servers.length;s++) {
-					if (servers[s].createdAt!=my.createdAt || servers[s].ip!=my.ip || servers[s].port!=my.port) continue;
-					servers.splice(s,1);
-					break;
+				try {
+					var servers=JSON.parse(response.body);
+					// remove ourselves from the list
+					/*
+					for (var s=0;s<servers.length;s++) {
+						if (servers[s].createdAt!=my.createdAt || servers[s].ip!=my.ip || servers[s].port!=my.port) continue;
+						servers.splice(s,1);
+						break;
+					}
+					*/
+					var msg = JSON.stringify({servers:servers});
+					my.otherServers=servers;
+					if (callback) callback();
 				}
-				*/
-				var msg = JSON.stringify({servers:servers});
-				my.otherServers=servers;
-				if (callback) callback();
+				catch(err) {
+					Logger.error(err);
+				}
 			}
 			else {
 				Logger.info("Server       could not register at Master");

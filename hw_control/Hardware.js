@@ -215,7 +215,7 @@ class Hardware {
 		for (var elmId in this.elms) {
 			var elm=this.elms[elmId];
 
-			Logger.info("Hardware     creating "+elm.type+": "+elm.id+"  ("+elm.name+") "+(elm.emulate?" (emulation)":""));
+			Logger.info("Hardware     creating "+elm.type+": "+elm.id+(elm.name?"  ("+elm.name+") ":"  ")+(elm.emulate?" (emulation)":""));
 
 			if (isMissing(elm.name))	elm.name	= elm.id;
 			if (isMissing(elm.emulate)) elm.emulate = false;
@@ -377,6 +377,21 @@ class Hardware {
 		
 		return true;		
 	}
+	
+	getInitActions() {
+		// return a list of initial actions defined as "init" property of the FrontPanel in the HWD 
+		for (var id in this.elms) {
+			var elm = this.elms[id];
+			if (elm.type=="FrontPanel") {
+				if (elm.init) {
+					if (Array.isArray(elm.init)) return elm.init;
+					return [elm.init];
+				}
+				else return [];
+			}
+		}
+		return [];
+	}
 
 	release() {
 		// free resources 
@@ -389,8 +404,8 @@ class Hardware {
 			else if (elm.type=="Label") {
 			}
 			else if (elm.dev) {
+				Logger.info("Hardware     releasing "+elm.type+":"+elm.name);
 				elm.dev.release();
-				Logger.info("Hardware     "+elm.type+":"+elm.name+" released.");
 			}
 		}
 	}
@@ -481,6 +496,9 @@ class Hardware {
 				; // actions have no associated state
 			}
 			else if (elm.type=="DS1820") {
+				states.push({id:elm.id,type:elm.type,value:elm.dev.getValue()});
+			}
+			else if (elm.type=="PWDevice") {
 				states.push({id:elm.id,type:elm.type,value:elm.dev.getValue()});
 			}
 			else if (elm.dev.direction=="out") {
@@ -610,6 +628,8 @@ Hardware.action = {
 		arg: {
 			anyOf: [
 				{ type: "string" },
+				{ type: "number" },
+				{ type: "boolean" },
 				{ type: "object" },
 			]
 		},
@@ -706,6 +726,18 @@ Hardware.schema= {
 		}
 	},
 	FrontPanel: {
+		definitions: {
+			action: 	Hardware.actionStrict,
+			actions: {
+				anyOf: [
+					{	$ref: "#/definitions/action"	},
+					{	type: "array", items: { $ref: "#/definitions/action" },	},
+				]
+			}
+		},
+		properties: {
+			init:		{ $ref: "#/definitions/actions" },
+		},
 	},
 	Label: {
 	},

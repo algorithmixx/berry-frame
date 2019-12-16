@@ -16,6 +16,7 @@ do
 
 	echo restarting ..
 	date
+	cat restart.cmd
 	chmod 777 restart.cmd
 	./restart.cmd &
 	sleep 5

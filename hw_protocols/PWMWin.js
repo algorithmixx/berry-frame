@@ -25,8 +25,16 @@ class PWMWin {
 		this.dutyCycle=dutyCycle;
 	}
 	
-	add_channel_pulse(dma,gpio,from,duration) {
-		Logger.log("PWMWin       ["+this.gpio+"]  "+(duration/1000)+" msec   , period="+(1000/this.frequency)+" msec");
+	servoWrite(pulseWidth) {
+		Logger.log("PWMWin       ["+this.gpio+"]  "+(pulseWidth/1000)+" msec   , period="+(1000/this.frequency)+" msec");
+	}
+
+	pwmRange(range) {
+		
+	}
+	
+	pwmWrite(pulseWidth) {
+		Logger.log("PWMWin       ["+this.gpio+"]  "+(pulseWidth/1000)+" msec   , period="+(1000/this.frequency)+" msec");
 	}
 	
 	clear() {

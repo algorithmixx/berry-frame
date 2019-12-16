@@ -916,7 +916,20 @@ Action: {
 	in the web client user interface.
 	
 	<img src="http:img/samples.jpg" style="float:right;width:200px;margin-left:10px"/>
-		
+
+
+### 10.3) Google Application Credentials for Speech Synthesis
+
+	The ``Speakers`` device has a method named ``say`` which uses the Google speech synthesis API
+	to convert text into mp3 audio. Using the API requires a credential file which you must
+	get from Google (register for API use, create a project, enable the TTS API, etc..). 
+	If you have that file, place it in BERRY_HOME and add 
+	``set GOOGLE_APPLICATION_CREDENTIALS=path_to_your_credentials_file`` (on Windows) or 
+	``export GOOGLE_APPLICATION_CREDENTIALS=path_to_your_credentials_file`` (on the Raspi).
+	
+	If you do not want to use the ``say`` method of ``Speakers`` there is no need to 
+	do anything.
+	
 ## <a name="c11"/> 11) SAMPLE BERRIES
 
 ### Hello

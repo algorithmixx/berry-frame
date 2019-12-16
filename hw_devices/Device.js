@@ -284,9 +284,14 @@ class OutputDevice extends IODevice {
 		
 	setValue(value) {
 		if (this.dev) {
-			this.dev.writeSync(value);
-			// notify a watcher listening to the out port
-			// triggering the callback here avois the need to watch for harware interrupts on OUTPUT gpios
+			try {
+				this.dev.writeSync(value);
+				// notify a watcher listening to the out port
+				// triggering the callback here avois the need to watch for harware interrupts on OUTPUT gpios
+			}
+			catch(err) {
+				Logger.error(err);
+			}
 		}
 		if (this.watcher) this.watcher(0,this,this.constructor.name,value);
 	}

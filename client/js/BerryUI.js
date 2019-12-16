@@ -125,7 +125,7 @@ class BerryUI {
 							$("#hw_"+hw+"_"+device.id).css("background", "#bfb");
 							$("#hw_"+hw+"_"+device.id).html("🔊 "+device.value+" 🔊");
 							var music = new Audio();
-							music.src="app/"+my.hardwares[hw].type+"/audio/"+device.value+".wav";
+							music.src="app/"+my.hardwares[hw].type+"/audio/"+device.value;
 							music.play();
 						}
 						else if (typeof device.value && device.value.morse) {

@@ -40,6 +40,7 @@ class PWDevice extends Device {
 
 		this.frequency	= frequency;
 		this.period		= Math.round(1000000 / frequency);  // micro secs
+		this.pwmRange	= 10000;
 
 		if (this.emulate) {
 			this.dev = new (require('../hw_protocols/PWMWin.js').PWMWin)({gpio:gpio, pin:pwmPin,frequency:this.frequency,period:this.period});
@@ -48,10 +49,10 @@ class PWDevice extends Device {
 			this.dev = new (require("raspi-pwm").PWM)({pin:pwmPin,frequency:this.frequency});
 		}	
 		else {
-			this.dev = require("rpio-pwm");
-			this.dma=14; 			// direct memory access channel (DMA), hopefully unused by other applications
-			this.dev.setup(1); 		// 1 micro second as resolution
-			this.pwm.init_channel(this.dma, Math.round(1000000 / frequency));
+			const Gpio = require("pigpio").Gpio;
+			this.dev = new Gpio(gpio, {mode: Gpio.OUTPUT});
+			this.dev.pwmFrequency(this.frequency);
+			this.dev.pwmRange(this.pwmRange);
 		}
 		this.direction	= "out";
 		this.watcher	= null;
@@ -69,6 +70,7 @@ class PWDevice extends Device {
 	
 	setDutyCycle(value) {
 		// change the duty cycle
+		
 		if		(this.extraBound>this.lowerBound && value < this.extraBound) value=this.lowerBound;
 		else if (value<this.lowerBound) value=this.lowerBound;
 		else if (value>this.upperBound) value=this.upperBound;
@@ -76,7 +78,9 @@ class PWDevice extends Device {
 		if (this.pwmType=="hard") this.dev.write(value);
 		else {
 			// start pulses always from 0, calculate duration based on value an d frequency
-			this.dev.add_channel_pulse(this.dma, this.gpios[0], 0, Math.round(1000000/this.frequency*value));
+			var duty=Math.round(value*this.pwmRange);
+			Logger.log("PWDevice     ["+this.gpios[0]+"]  setDuty "+value+" ("+duty+")");
+			this.dev.pwmWrite(duty);
 		}
 		if (this.watcher) this.watcher(0,this,this.constructor.name,value);
 	}
@@ -99,7 +103,9 @@ class PWDevice extends Device {
 	
 	release() {
 		Logger.info("PWDevice     releasing "+this.toString());
-		// ? 
+		if (!this.emulate && this.pwmType!="hard") {
+			require("pigpio").terminate();
+		}
 	}
 }
 PWDevice.getApiDescription = function() {

@@ -26,7 +26,7 @@ class BerryFrame {
 		// get current script name
 
 		this.scriptName	 = process.argv[1].replace(/.*[/\\]/,'').replace(/[.]js$/,'');
-		this.versionId	 = "1.2.2";
+		this.versionId	 = "1.2.4";
 		
 		// find known Berry types and their default properties (description, port, rev, ..)
 		this.berryTypes = this.findBerryTypes();
@@ -43,7 +43,7 @@ class BerryFrame {
 		this.berryType = this.berryTypes[this.cmdLine.argv[0]];
 		
 		// intro message
-		Logger.info("BerryFrame   "+JSON.stringify(this.cmdLine.argv)+" -- "+JSON.stringify(this.cmdLine.options));
+		Logger.info("BerryFrame   "+this.berryType.name+" -- "+JSON.stringify(this.cmdLine.argv)+" -- "+JSON.stringify(this.cmdLine.options));
 
 		// Operating system info
 		this.os = process.platform;
@@ -245,7 +245,7 @@ class BerryFrame {
 		// create http server and loop forever
 		theServer.configure(
 			this.berryTypes,
-			this.berryTypes,
+			this.berryType,
 			this.name,
 			this.revision,
 			this.port,
@@ -414,7 +414,6 @@ class BerryFrame {
 								"raspi-i2c@^6.2.4",
 								"raspi-onewire@^1.0.1",
 								"raspi-pwm@^6.0.0",
-								"rpio-pwm@^0.2.1",
 								"speaker@^0.3.1"
 							],
 							{stdio:"inherit"}
