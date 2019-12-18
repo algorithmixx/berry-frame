@@ -349,6 +349,12 @@
 	in the UI and do not have a physical correspondence.
 	Apart from technical details like GPIO numbers, debounce times etc. the HWD also contains layout
 	declarations for the representation of each element on the browser screen ("virtual front panel").
+	
+	Elements have a unique identification (property:id); there are some *reserved ids:*
+	- ``server`` : the built-in web-server
+	- ``hardware`` : the hardware as a whole
+	- ``app`` : the application as a whole
+	- ``api`` : the application programming interface
 
 	HWD files allow to define simple connections between a Button and other elements like LEDs.
 	Therefore in some cases you could even define a Berry application without a specific 

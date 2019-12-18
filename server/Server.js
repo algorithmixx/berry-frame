@@ -238,7 +238,7 @@ class Server {
 		// so, finally all cmds will be performed one after the other
 		if (actions.length<=0) return;		
 		var action = actions.shift();
-		var actionJson = JSON.stringify(action).replace('"elm":','"id":');
+		var actionJson = JSON.stringify(action);
 		var my=this;
 		if (actions.length>0)	this.action(null,actionJson,function(proc) { my.performHwdAction(actions,done);	});	
 		else 					this.action(null,actionJson,done);
@@ -278,7 +278,8 @@ class Server {
 		// defines the reaction on requests which may come from a socket connection
 		// or from a http REST request (socket==null in that case)
 		
-		Logger.log("Server       SOCKET received action "+actionJson);
+		if (socket) Logger.log("Server       SOCKET request for action "+actionJson);
+		else		Logger.log("Server       API request for action "+actionJson);
 		var my=theServer;
 		var action;
 		try {
@@ -290,7 +291,7 @@ class Server {
 			return {msg};
 		}
 
-		if 		(action.id=="server") {
+		if 		(action.elm=="server") {
 			
 			// ACTIONS referring to the SERVER as a whole
 			
@@ -329,7 +330,7 @@ class Server {
 			
 		}
 
-		else if	(action.id=="hardware") {
+		else if	(action.elm=="hardware") {
 			
 			// ACTIONS referring to the HARDWARE as a whole
 			
@@ -360,44 +361,56 @@ class Server {
 			}
 		}
 		
-		// ACTIONS referring to the hardware specific APPLICATION
-		else if (action.id=="app") {
+		// ACTIONS referring to the APPLICATION as a whole
+		
+		else if (action.elm=="app") {
 			// the element targets the app specific class (remote procedure call)
 			return theHardware.appObject[action.cmd](null,action.arg);
 		}
 		
 		// ACTIONS referring to the API
-		else if (action.id=="api") {
+		
+		else if (action.elm=="api") {
 			// the element targets the app specific class (remote procedure call)
 			if (action.cmd=="help") return { help: theHardware.apiHelp(my.type) };
 			return {error:"use cmd:help to see how the API can be used."};
 		}
 
-		// ACTIONS referring to individual hardware ELEMENTS
+		// ACTIONS referring to INDIVIDUAL HARDWARE ELEMENTS
 
-		else if (isPresent(action.id)) {
-			var target=theHardware.elms[action.id];
+		else if (isPresent(action.elm)) {
+			// <target> = the element we want to control
+			// <action.cmd> = command to be applied to the target
+			// <arg> (or single properties) = the argument to be used with <cmd>
+			var target=theHardware.elms[action.elm];
+			var arg = {};
+			if (isPresent(action.arg)) arg=JSON.parse(JSON.stringify(action.arg));
+			for (var prop in action) {
+				// reserved property names related to the execution of <cmd>
+				if (["elm","cmd","after","delay","once","clear","when"].includes(prop)) continue;
+				arg[prop] = action[prop];
+			}
 			if (!target) {
-				var msg="Server: There is no hardware device with id='"+action.id+"'";
+				var msg="Server: There is no hardware element with id='"+action.elm+"'";
 				Logger.error(msg);
 				return msg;
 			}
 
 			else if (target.type=="LED") {
 				// execute blink command for a LED
-				if (this.can(socket,"LED",target.id,["blink"],action.cmd)=="ok") {
-					target.dev.blink(action.interval||500,action.ratio||50,action.duration,action.cycles||3);
-					return {type:"LED",id:target.id,state:"blinking"};
+				if (this.can(socket,"LED",action.elm,["blink"],action.cmd)=="ok") {
+					target.dev.blink(arg);
+					return {type:"LED",elm:action.elm,state:"blinking"};
 				}
-				if (this.can(socket,"LED",target.id,["toggle","on","off"],action.cmd)=="ok") {
+				if (this.can(socket,"LED",action.elm,["toggle","on","off"],action.cmd)=="ok") {
 					target.dev[action.cmd]();
-					return {type:"LED",id:target.id,state:target.dev.getValue()};
+					return {type:"LED",elm:action.elm,state:target.dev.getValue()};
 				}
-				else if (this.can(socket,"LED",target.id,["getValue"],action.cmd)=="ok") {
-					return {type:"LED",id:target.id,state:target.dev.getValue()};
+				else if (this.can(socket,"LED",action.elm,["getValue"],action.cmd)=="ok") {
+					return {type:"LED",elm:action.elm,state:target.dev.getValue()};
 				}
 				else {
-					var msg="Server: unknown action for LED: "+JSON.stringify(action);
+					var msg="Server: unknown action for LED "+action.elm+": "+JSON.stringify(action);
 					Logger.error(msg);
 					return msg;
 				}
@@ -405,14 +418,12 @@ class Server {
 
 			else if (target.type=="PWDevice") {
 				// execute dim command for a PWDevice
-				var elm=theHardware.elms[action.id];
-				if (this.can(socket,"PWDevice",action.id,["setDutyCycle"],action.cmd)=="ok") {
-					var value= (isPresent(action.value)) ? action.value : action.arg.value;
-					elm.dev.setDutyCycle(value);
-					return {type:"PWDevice",id:action.id,state:"dutyCycle="+value};
+				if (this.can(socket,"PWDevice",action.elm,["setDutyCycle"],action.cmd)=="ok") {
+					target.dev.setDutyCycle(arg.value);
+					return {type:"PWDevice",elm:action.elm,state:"dutyCycle="+arg.value};
 				}
-				else if (this.can(socket,"PWDevice",action.id,["getValue","getDutyCycle"],action.cmd)=="ok") {
-					return {type:"PWDevice",id:action.id,state:elm.dev.getValue()};
+				else if (this.can(socket,"PWDevice",action.elm,["getValue","getDutyCycle"],action.cmd)=="ok") {
+					return {type:"PWDevice",elm:action.elm,state:target.dev.getValue()};
 				}
 				else {
 					var msg="Server: unknown action for PWDevice: "+JSON.stringify(action);
@@ -423,10 +434,10 @@ class Server {
 
 			else if (target.type=="Button") {
 				// Button action
-				if (this.can(socket,"Button",target.id,["pressed","down","up"],action.state)=="ok") {
-					Logger.log("Server       Button "+target.id+ " -- "+action.state);
-					target.dev.press(action.state);
-					return {type:"Button",id:target.id,state:action.state};
+				if (this.can(socket,"Button",action.elm,["pressed","down","up"],arg.state)=="ok") {
+					Logger.log("Server       Button "+action.elm+ " -- "+arg.state);
+					target.dev.press(arg.state);
+					return {type:"Button",elm:action.elm,state:arg.state};
 				}
 				else {
 					var msg="Server: unknown action for Button: "+JSON.stringify(action);
@@ -437,11 +448,11 @@ class Server {
 
 			else if (target.type=="WS2801") {
 				// client wants to play an LED strip procedure
-				if (this.can(socket,"WS2801",target.id,["play"],action.cmd)=="ok") {
-					var ok=target.dev.play(onFinished,action.prog);
-					if (ok) return {type:"WS2801",id:target.id,state:"playing",prog:action.prog};
-					if (socket) this.sendError(socket,'WS2801 '+action.WS2801+' cannot play "'+action.prog);
-					return {type:"WS2801",id:target.id,state:"cannot play",prog:action.prog};
+				if (this.can(socket,"WS2801",action.elm,["play"],action.cmd)=="ok") {
+					var ok=target.dev.play(onFinished,arg.prog);
+					if (ok) return {type:"WS2801",elm:action.elm,state:"playing",prog:arg.prog};
+					if (socket) this.sendError(socket,'WS2801 '+action.elm+' cannot play "'+arg.prog);
+					return {type:"WS2801",elm:action.elm,state:"cannot play",prog:arg.prog};
 				}
 				else {
 					var msg="Server: unknown action for WS2801: "+JSON.stringify(action);
@@ -452,15 +463,15 @@ class Server {
 
 			else if (target.type=="MPU6500") {
 				// client wants to get the current orientation
-				if (this.can(socket,"MPU6500",target.id,["getValue","setValue"],action.cmd)=="ok") {
+				if (this.can(socket,"MPU6500",action.elm,["getValue","setValue"],action.cmd)=="ok") {
 					if (action.cmd=="getValue") {
 						var orientation=target.dev.getValue();
-						if (socket) this.sendResponse(socket,{type:"MPU6500",id:target.id,value:orientation});
-						return {type:"MPU6500",id:target.id,value:orientation};
+						if (socket) this.sendResponse(socket,{type:"MPU6500",elm:action.elm,value:orientation});
+						return {type:"MPU6500",elm:action.elm,value:orientation};
 					}
 					else {
-						target.dev.setValue(action.value);
-						return {type:"MPU6500",id:target.id,value:action.value};
+						target.dev.setValue(arg.value);
+						return {type:"MPU6500",elm:action.elm,value:arg.value};
 					}
 				}
 				else {
@@ -472,17 +483,17 @@ class Server {
 
 			else if (target.type=="Speakers") {
 				// client wants a sound file to be played
-				if (this.can(socket,"Speakers",target.id,["play"],action.cmd)=="ok") {
-					var ok=target.dev.play(action.arg);
-					if (ok) return {type:"Speakers",id:target.id,state:"playing "+action.arg};
-					if (socket) this.sendError(socket,'Speakers '+target.id+' cannot play "'+action.arg);
-					return {type:"Speakers",id:target.id,state:"cannot play "+action.arg};
+				if (this.can(socket,"Speakers",action.elm,["play"],action.cmd)=="ok") {
+					var ok=target.dev.play(arg.prog);
+					if (ok) return {type:"Speakers",elm:action.elm,state:"playing "+arg.prog};
+					if (socket) this.sendError(socket,'Speakers '+action.elm+' cannot play "'+arg.prog);
+					return {type:"Speakers",elm:action.elm,state:"cannot play "+arg.prog};
 				}
-				else if (this.can(socket,"Speakers",target.id,["say"],action.cmd)=="ok") {
-					var ok=target.dev.say(action.arg);
-					if (ok) return {type:"Speakers",id:target.id,state:"saying "+action.arg};
-					if (socket) this.sendError(socket,'Speakers '+target.id+' cannot say (Google TTS) "'+action.arg);
-					return {type:"Speakers",id:target.id,state:"cannot say (Google TTS) "+action.arg};
+				else if (this.can(socket,"Speakers",action.elm,["say"],action.cmd)=="ok") {
+					var ok=target.dev.say(arg.text);
+					if (ok) return {type:"Speakers",elm:action.elm,state:"saying "+arg.text};
+					if (socket) this.sendError(socket,'Speakers '+action.elm+' cannot say (Google TTS) "'+arg.text);
+					return {type:"Speakers",elm:action.elm,state:"cannot say (Google TTS) "+arg.text};
 				}
 				else {
 					var msg="Server: unknown action for Speakers: "+JSON.stringify(action);
@@ -494,7 +505,7 @@ class Server {
 			else if (target.type=="Display") {
 				// client wants the msg to be shown
 				target.dev.println(action.arg);
-				return {type:"Display",id:target.id,msg:action.arg};
+				return {type:"Display",elm:action.elm,msg:action.arg};
 			}
 			else if (target.type=="TextInput") {
 				// client sends text input
@@ -507,23 +518,23 @@ class Server {
 			}
 			else if (target.type=="Action") {
 				// client tells us that an action was selected
-				var elm, cmd, arg;
-				if (!action.value) action.value=target.options[0].value;
+				var optElm, optCmd, optArg;
+				if (!arg.value) arg.value=target.options[0].value;
 				for (var opt of target.options) {
-					if ((!opt.value && opt!=action.value) || (opt.value && opt.value!=action.value)) continue;
+					if ((!opt.value && opt!=arg.value) || (opt.value && opt.value!=arg.value)) continue;
 					if (target.selected) {
-						elm = target.selected.elm;
-						cmd = target.selected.cmd;
-						arg = target.selected.arg;
+						optElm = target.selected.elm;
+						optCmd = target.selected.cmd;
+						optArg = target.selected.arg;
 					}
-					if (opt.elm) elm=opt.elm;
-					if (opt.cmd) cmd=opt.cmd;
-					if (opt.arg) arg=opt.arg;
-					if (!opt.arg) arg = action.value;
+					if (opt.elm) optElm=opt.elm;
+					if (opt.cmd) optCmd=opt.cmd;
+					if (opt.arg) optArg=opt.arg;
+					if (!opt.arg) optArg = arg.value;
 					break;
 				}
-				if (elm=="app") return theHardware.appObject[cmd](null,arg);
-				else return theHardware.elms[elm].dev[cmd](arg);
+				if (optElm=="app") return theHardware.appObject[optCmd](null,optArg);
+				else return theHardware.elms[optElm].dev[optCmd](optArg);
 			}
 			else {
 				var msg="Server: unknown action: "+JSON.stringify(action);
@@ -615,7 +626,7 @@ class Server {
 
 	broadcastState(device,type,value)	 {
 		var my=theServer;
-		var msg = JSON.stringify({states:[{id:device.id,type:type,value:value}]});
+		var msg = JSON.stringify({states:[{type:type,id:device.id,value:value}]});
 		// transmit to all connected clients
 		if ((type!="WS2801" && type!="MPU6500") || Logger.level>=2) Logger.log("Server       SOCKET broadcast "+msg);
 		my.io.emit('state',msg);
@@ -631,6 +642,7 @@ class Server {
 		socket.emit('state',JSON.stringify(theHardware.getSetupJson()));
 
 		var response=JSON.stringify(theHardware.getAllStatesJson());
+		
 		Logger.log("Server       sending ALL STATES "+response);
 		socket.emit('state',response);
 		

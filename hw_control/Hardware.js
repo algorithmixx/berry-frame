@@ -480,6 +480,7 @@ class Hardware {
 	getAllStatesJson() {
 		var states=[];
 		for (var elm of Object.values(this.elms)) {
+
 			if 		(elm.type=="FrontPanel") {
 				;
 			}

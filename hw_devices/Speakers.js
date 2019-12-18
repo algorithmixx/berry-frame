@@ -54,6 +54,10 @@ class Speakers extends Device {
 			if (this.watcher) this.watcher(0,this,"Speakers","already playing .. "+this.fileName);
 			return false;
 		}
+		if (typeof fileName!="string") {
+			Logger.error("Speakers "+this.id+": filename is not a string: "+fileName);
+			return false;
+		}
 		this.fileName=fileName;
 		if (this.fileName.indexOf(",")>0) {
 			var names = fileName.split(",");
@@ -160,6 +164,12 @@ Speakers.getApiDescription = function() {
 				{name:"prog",meaning:"a wav filename without path and extension"}
 			],
 			effect:"plays the wav file from the client´s audio subdir"
+		},
+		{	cmd:"say",
+			args:[
+				{name:"text",meaning:"a German text to be converted to speech by Google TTS"}
+			],
+			effect:"resulting mp3 file will be in audio/google-speech.mp3"
 		},
 		{	cmd:"playMorse",
 			args:[

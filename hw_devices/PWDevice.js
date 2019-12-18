@@ -59,6 +59,7 @@ class PWDevice extends Device {
 		this.lowerBound = 0;
 		this.upperBound = 1;
 		this.extraBound = 0;
+		this.dutyCycle	= 0;
 	}
 
 	limitDutyCycle(bounds) {
@@ -74,6 +75,7 @@ class PWDevice extends Device {
 		if		(this.extraBound>this.lowerBound && value < this.extraBound) value=this.lowerBound;
 		else if (value<this.lowerBound) value=this.lowerBound;
 		else if (value>this.upperBound) value=this.upperBound;
+		this.dutyCycle=value;
 		
 		if (this.pwmType=="hard") this.dev.write(value);
 		else {
@@ -90,10 +92,10 @@ class PWDevice extends Device {
 	}
 	
 	getValue() {
-		return this.dev.dutyCycle;
+		return this.dutyCycle;
 	}
 	getDutyCycle() {
-		return this.dev.dutyCycle;
+		return this.dutyCycle;
 	}
 	
 	onChanged(watcher) {

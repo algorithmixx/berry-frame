@@ -42,12 +42,12 @@ class BerryUI {
 		this.createPanel(hw);
 		this.installSocketHandlers(hw);
 		// initially request the full state from the server
-		this.sendAction(hw,{id:"hardware",cmd:"getAll"});
+		this.sendAction(hw,{elm:"hardware",cmd:"getAll"});
 	}
 
 	removeServer(hw) {
 		// close the connection to a server and remove its virtual front panel
-		// hw is an id which identifies the connection to the server
+		// hw identifies the connection to the server
 
 		var my=app;
 		my.sockets[hw].close();
@@ -65,7 +65,7 @@ class BerryUI {
 
 	installSocketHandlers(hw) {
 		// install handlers for the socket connection to a given server
-		// hw is an id which identifies the connection to the server
+		// hw identifies the connection to the server
 
 		var my=this;
 		
@@ -109,7 +109,7 @@ class BerryUI {
 			if (response.states && my.hardwares[hw]) {
 				for (var device of response.states) {
 					if (device.type=="WS2801" && device.value) {
-						// LED strip (regardless of id, we only have one)
+						// LED strip
 						var data = device.value.data;
 						for(var l=0,v=0;v<data.length;l++,v+=3) {
 							$("#s_"+hw+"_"+l).css("background", "rgb("+my.ledAdjust(data[v])+","+my.ledAdjust(data[v+1])+","+my.ledAdjust(data[v+2])+")");
@@ -272,12 +272,12 @@ class BerryUI {
 	
 	startServer(type) {
 		var server = app.startableServers[type];
-		app.sendAction(0,{id:"server",cmd:"start",type:type,name:server.name});
+		app.sendAction(0,{elm:"server",cmd:"start",type:type,name:server.name});
 	}
 	
 	createPanel(hw) {
 		// display the virtual front panel for the hardware of a given server
-		// hw is an id which identifies the connection to the server
+		// hw identifies the connection to the server
 		
 		var html=`
 			<div id="hwimg_`+hw+`" style="float:right;display:inline-block;vertical-align:top;"></div>
@@ -297,7 +297,7 @@ class BerryUI {
 	
 	dropPanel(hw) {
 		// remove the virtual front panel for the hardware of a given server
-		// hw is an id which identifies the connection to the server
+		// hw identifies the connection to the server
 
 		$("#hw_"+hw).remove();
 		$("#hwimg_"+hw).remove();
@@ -325,24 +325,24 @@ class BerryUI {
 
 		var controlButtons1="";
 		if (hardware.exclude.indexOf("rs")<0 && hardware.exclude.indexOf("all")<0) controlButtons1+=
-			"<button title='RESTART berry-frame Server' onclick='app.sendAction("+hw+",{id:\"server\",cmd:\"restart\"});app.disableServer("+hw+");'>"+
+			"<button title='RESTART berry-frame Server' onclick='app.sendAction("+hw+",{elm:\"server\",cmd:\"restart\"});app.disableServer("+hw+");'>"+
 			"<span style='color:blue;font-weight:700;'>&#8635;</span></button>&nbsp;"
 		;
 		if (hardware.exclude.indexOf("rb")<0 && hardware.exclude.indexOf("all")<0) controlButtons1+=
-			"<button title='REBOOT Raspberry Pi computer' onclick='app.sendAction("+hw+",{id:\"hardware\",cmd:\"reboot\"});app.disableServer("+hw+");'>"+
+			"<button title='REBOOT Raspberry Pi computer' onclick='app.sendAction("+hw+",{elm:\"hardware\",cmd:\"reboot\"});app.disableServer("+hw+");'>"+
 			"<span style='color:blue;font-weight:700;'>&#8635;&#8635;</span></button>&nbsp;"
 		;
 		var controlButtons2="";
 		if (hardware.exclude.indexOf("U")<0 && hardware.exclude.indexOf("all")<0) controlButtons2+=
-			"<button title='berry-frame, version "+hardware.version+",\n click to UPDATE (via npm) and RESTART!' onclick='app.sendAction("+hw+",{id:\"server\",cmd:\"update\"});'>"+
+			"<button title='berry-frame, version "+hardware.version+",\n click to UPDATE (via npm) and RESTART!' onclick='app.sendAction("+hw+",{elm:\"server\",cmd:\"update\"});'>"+
 			"<span style='color:magenta;font-weight:700'>&#8659;</span></button>&nbsp;"
 		;
 		if (hardware.exclude.indexOf("S")<0 && hardware.exclude.indexOf("all")<0) controlButtons2+=
-			"<button title='STOP berry-frame server' onclick='app.sendAction("+hw+",{id:\"server\",cmd:\"stop\"});app.removeServer("+hw+");'>"+
+			"<button title='STOP berry-frame server' onclick='app.sendAction("+hw+",{elm:\"server\",cmd:\"stop\"});app.removeServer("+hw+");'>"+
 			"<span style='color:red;font-weight:700'>x</span></button>&nbsp;"
 		;
 		if (hardware.exclude.indexOf("X")<0 && hardware.exclude.indexOf("all")<0) controlButtons2+=
-			"<button title='SHUTDOWN and HALT Raspberry Pi computer' onclick='app.sendAction("+hw+",{id:\"hardware\",cmd:\"shutdown\"});app.removeServer("+hw+");'>"+
+			"<button title='SHUTDOWN and HALT Raspberry Pi computer' onclick='app.sendAction("+hw+",{elm:\"hardware\",cmd:\"shutdown\"});app.removeServer("+hw+");'>"+
 			"<span style='color:red;font-weight:700;'>xx</span></button>&nbsp;"
 		;
 
@@ -354,7 +354,7 @@ class BerryUI {
 					: 
 					controlButtons1+
 					"<a title='get help on the API and use it in a separate browser tab' target='api' "+
-					"style='color:green;text-decoration:none;font-weight:700;' href='/api?id:api,cmd:help'>API</a>&nbsp;|&nbsp;"+
+					"style='color:green;text-decoration:none;font-weight:700;' href='/api?elm:api,cmd:help'>API</a>&nbsp;|&nbsp;"+
 					"<a title='open hardware description in a separate browser tab' target='hwd' "+
 					"style='color:green;text-decoration:none;font-weight:700;' href='/app/"+app.hardwares[hw].type+"/server/"+app.hardwares[hw].type+".hwd'>HWD</a>&nbsp;|&nbsp;"+
 					"<a title='download this Berry' "+
@@ -463,9 +463,9 @@ class BerryUI {
 				if (elm.color) elm.style+=";background-color:"+elm.color+";";
 				// we have a button which will be handled individually by the application
 				var handles = "";					
-				if (elm.pressed				) handles += "' onclick='app.sendAction("+hw+",{id:\""+elm.id+"\",state:\"pressed\"});'";
-				if (elm.down || elm.downUp	) handles += " onmousedown='app.sendAction("+hw+",{id:\""+elm.id+"\",state:\"down\"});'";
-				if (elm.up || elm.downUp	) handles += " onmouseup='app.sendAction("+hw+",{id:\""+elm.id+"\",state:\"up\"});'";
+				if (elm.pressed				) handles += "' onclick='app.sendAction("+hw+",{elm:\""+elm.id+"\",state:\"pressed\"});'";
+				if (elm.down || elm.downUp	) handles += " onmousedown='app.sendAction("+hw+",{elm:\""+elm.id+"\",state:\"down\"});'";
+				if (elm.up || elm.downUp	) handles += " onmouseup='app.sendAction("+hw+",{elm:\""+elm.id+"\",state:\"up\"});'";
 				it=	"<button id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style='"
 					+elm.style+"'"+handles+">"+elm.name+"</button>";
 			}
@@ -475,7 +475,7 @@ class BerryUI {
 					if (!value) value = elm.options[0]; 
 					// Action without alternatives
 					it=	"<button id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style='"
-						+elm.style+"' onclick='app.sendAction("+hw+",{id:\""+elm.id+"\",value:\""+value+"\"});'>"+value+"</button>";
+						+elm.style+"' onclick='app.sendAction("+hw+",{elm:\""+elm.id+"\",value:\""+value+"\"});'>"+value+"</button>";
 				}
 				else {
 					// Action with multiple string values or with multiple option objects (value, elm, cmd, arg)
@@ -486,7 +486,7 @@ class BerryUI {
 					}
 					it=	"<select id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style='"
 						+elm.style+"'"+" onmouseup='var open=$(this).data(\"isopen\"); if(open) { app.sendAction("
-						+hw+",{id:\""+elm.id+"\",value:$(this).val()})}; $(this).data(\"isopen\",!open);'"
+						+hw+",{elm:\""+elm.id+"\",value:$(this).val()})}; $(this).data(\"isopen\",!open);'"
 						+">"+opts+"</select>"
 					;
 				}
@@ -512,7 +512,7 @@ class BerryUI {
 				var val=""+elm.duty[0]+"+"+(elm.duty[1]-elm.duty[0])+"*(this.value-"+elm.range[0]+")/"+(elm.range[1]-elm.range[0]);
 				it= "<div class='slidecontainer' style='"+elm.style+"' title='"+(elm.title||"")+"'>"
 					+"<input type='range' min='"+elm.range[0]+"' max='"+elm.range[1]+"' class='slider' id='hw_"+hw+"_"+elm.id
-					+"' oninput='app.sendAction("+hw+",{id:\""+elm.id+"\",cmd:\"setDutyCycle\",\"value\":"+val+"});'/>"
+					+"' oninput='app.sendAction("+hw+",{elm:\""+elm.id+"\",cmd:\"setDutyCycle\",\"value\":"+val+"});'/>"
 					+"<span id='hw_"+hw+"_v_"+elm.id+"' style='float:right'>50</span>"
 					+"<span display:'inline-block'>"+elm.name+"</span>&nbsp;&nbsp;<span id='hw_"+hw+"_a_"+elm.id+"' style='display:inline-block;font-size:150%;font-weight:800'>→</span></div>"
 				;
@@ -605,9 +605,8 @@ class BerryUI {
 	}
 
 	sendTextInput(hw,id) {
-		var elm=app.hardwares[hw].elms[id];
 		var value=$("#hw_"+hw+"_"+id+" textarea").val();
-		app.sendAction(hw,{id:id,arg:value});
+		app.sendAction(hw,{elm:id,arg:value});
 	}
 	
 	sendRotation(hw,id,axis,val) {
@@ -617,7 +616,7 @@ class BerryUI {
 		var y = (elm.rot[1]+elm.orientation[1]) % 360;
 		var z = (elm.rot[2]+elm.orientation[2]) % 360;
 		$("#hw_"+hw+"_"+id+" .MPU6500_model").css({ transform:"rotateX("+x+"deg) rotateY("+y+"deg) rotateZ("+z+"deg)" });
-		app.sendAction(hw,{id:id,cmd:"setValue",value:elm.rot});
+		app.sendAction(hw,{elm:id,cmd:"setValue",value:elm.rot});
 	}
 
 	updateRotations(hw,id,val) {
@@ -635,7 +634,7 @@ class BerryUI {
 	}
 	
 	api(hw,id,cmd) {
-		var url=app.servers[hw]+"/api?id:"+id+",cmd:"+cmd;
+		var url=app.servers[hw]+"/api?elm:"+id+",cmd:"+cmd;
 		if (app.apiWindow) {
 			app.apiWindow.url=url;
 		}
