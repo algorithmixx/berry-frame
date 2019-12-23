@@ -508,7 +508,9 @@ WS2801: {
    reverse:    can be 0 or 1.0, reverses the sequence of the LEDs,
 }
 
-Speakers: {}
+Speakers: {
+	devName:	"optional, a string like 'hw:1,0' describing the audio device",
+}
 
 Action: {
     target:    "the id of the element to which the Action refers",
@@ -861,11 +863,15 @@ Action: {
       Install __node and npm__
 
 	Please note: If you have a Raspi Zero you have an armv61 processor.
-	In that case you should install directly from the "dist" directory of nodejs.org the version 9.7.1 for armv61
+	In that case you should install directly from the "dist" directory of nodejs.org
+	the latest version published for the ARMv61 processor:
 ````
-    curl -o node-v9.7.1-linux-armv6l.tar.gz https://nodejs.org/dist/v9.7.1/node-v9.7.1-linux-armv6l.tar.gz
-    tar -xzf node-v9.7.1-linux-armv6l.tar.gz
-    sudo cp -r node-v9.7.1-linux-armv6l/* /usr/local/
+    curl -o node-v11.15.0-linux-armv6l.tar.gz https://nodejs.org/dist/v11.15.0/node-v11.15.0-linux-armv6l.tar.gz
+    tar -xzf node-v11.15.0-linux-armv6l.tar.gz
+    sudo cp -r node-v11.15.0-linux-armv6l/*  /usr/local/
+	rm node-v11.15.0-linux-armv6l.tar.gz
+	rm -fr node-v11.15.0-linux-armv6l
+	
 ````
 	Then remove the tar file and the unpacked directory which were created in the pwd by the above commands.
 	
@@ -875,18 +881,26 @@ Action: {
 
 #### 10.2.4) Install __berry-frame__		
 
+	* call ``sudo apt-get install libasound2-dev`` 
+	because its header file will be needed during the next step.
+	
+	* if you want to play mp3 audio files on the Raspi, call ``sudo apt-get install omxplayer``
+
 	Create you BERRY_HOME directory, e.g. ``/home/pi/berries``
 	
 	* Install __berry-frame__: ``npm install berry-frame``
 	
-	* copy the following two binaries (``berry`` and ``onreboot``)
+	* copy the binaries ( ``berry`` , ``onreboot`` , ``monitor`` )
 	from ``node_modules/berry-frame/bin/`` to BERRY_HOME and make them executable.
 	
-	* call ``sudo apt-get install libasound2-dev`` 
-	because its header file will be needed during the next step.
-
-	* call ``sudo apt-get install zip unzip`` 
-	because it will be needed for downloading berries from the shop.
+	 ```
+	 cp node_modules/berry-frame/bin/berry .
+	 chmod +x berry
+	 cp node_modules/berry-frame/bin/onreboot . 
+	 chmod +x onreboot
+	 cp node_modules/berry-frame/bin/monitor . 
+	 chmod +x monitor
+	 ```
 
 	* call ``./berry`` and __wait until the second part of the installation has completed__.
 	This can take several minutes.

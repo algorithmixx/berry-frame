@@ -10,7 +10,7 @@ class Speakers extends Device {
 	// It uses GPIOs 16,18,19,21 and has a button on 23 and an LED on 25
 	// the microphone on the same card uses GPIO 20
 
-	constructor(id,name,appType,emulate) {
+	constructor(id,name,appType,devName,emulate) {
 
 		super(id,name,[],emulate);	// do not use "traditional" inout GPIO pins
 		this.gpios = [16,18,19,21];	// in fact, the GPIO Pins are configured to use the I2S protocol
@@ -19,6 +19,7 @@ class Speakers extends Device {
 		this.protocol="I2S";
 		this.fileName="--";
 		this.appType=appType;
+		this.devName=devName;
 		this.watcher=null;
 	}
 
@@ -104,7 +105,10 @@ class Speakers extends Device {
 			if (this.fileName.toLowerCase().endsWith(".mp3")) {
 				var childProc = require('child_process'); 
 				try {
-					childProc.spawn('omxplayer', ["./"+this.appType+"/audio/"+this.fileName], {stdio:"inherit"});
+					var args = ["./"+this.appType+"/audio/"+this.fileName];
+					if (this.devName!="") { args.push("-o"); args.push("alsa:"+this.devName); }
+					Logger.log("Speakers     playing (Raspi): "+this.fileName+" .. "+JSON.stringify(args));
+					childProc.spawn('omxplayer', args, {stdio:"inherit"});
 					// we should change this only after the sub process has terminated.
 					var that=this;
 					setTimeout(function() { 
@@ -119,9 +123,21 @@ class Speakers extends Device {
 			else if (this.fileName.toLowerCase().endsWith(".wav")) {
 				const Sound	= require('node-aplay');
 				var file = this.appType+"/audio/"+this.fileName;
+				var args = ["./"+file];
+				if (this.devName!="") { args.push("-D"); args.push(this.devName); }
+				Sound.prototype.playDev = function(args) {
+					this.stopped=false;
+					this.process = require('child_process').spawn('aplay', args);
+					var self=this;
+					this.process.on('exit',function(code,sig) {
+						if (code!==null && sig===null) {
+							self.emit('complete');
+						}
+					});
+				};
 				var music = new Sound(file);
-				Logger.log("Speakers     playing (Raspi): "+this.fileName+" ..");
-				music.play();
+				Logger.log("Speakers     playing (Raspi): "+this.fileName+" .. "+JSON.stringify(args));
+				music.playDev(args);
 				var that=this;
 				if (that.watcher) {
 					// when music ends: reset the current fileName and send message

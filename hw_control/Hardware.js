@@ -305,6 +305,7 @@ class Hardware {
 					elm.id,
 					elm.name,
 					this.type,
+					elm.devName || "",
 					elm.emulate
 				);
 			}
@@ -767,6 +768,9 @@ Hardware.schema= {
 		}
 	},
 	Speakers: {
+		properties: {
+			devName:	{ type: "string", description:"optional, a value like 'hw:1,0' to describe the audio device",}
+		}
 	},
 	TextInput: {		
 		definitions: {

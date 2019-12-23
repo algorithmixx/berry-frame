@@ -26,7 +26,7 @@ class BerryFrame {
 		// get current script name
 
 		this.scriptName	 = process.argv[1].replace(/.*[/\\]/,'').replace(/[.]js$/,'');
-		this.versionId	 = "1.2.5";
+		this.versionId	 = "1.2.7";
 		
 		// find known Berry types and their default properties (description, port, rev, ..)
 		this.berryTypes = this.findBerryTypes();
@@ -43,7 +43,8 @@ class BerryFrame {
 		this.berryType = this.berryTypes[this.cmdLine.argv[0]];
 		
 		// intro message
-		Logger.info("BerryFrame   "+this.berryType.name+" -- "+JSON.stringify(this.cmdLine.argv)+" -- "+JSON.stringify(this.cmdLine.options));
+		Logger.info("BerryFrame   version: "+this.versionId+" -- starting "+this.berryType.name);
+		Logger.info("BerryFrame   cmdline: "+JSON.stringify(this.cmdLine.argv)+" -- "+JSON.stringify(this.cmdLine.options));
 
 		// Operating system info
 		this.os = process.platform;
