@@ -158,19 +158,35 @@ class Server {
 					else 		my.broadcastState(device,type,value);
 				},false);
 			}
+			else if (elm.type=="ADS1115") {
+				Logger.info("Server       installing input watcher for "+elm.type+": "+elm.id);
+				elm.dev.onChanged(function (err,device,type,value) {
+					if (err)	Logger.error(my.logName+": ",err); 
+					else 		my.broadcastState(device,type,value);
+				});
+			}
 			else if (elm.type=="DS1820") {
 				Logger.info("Server       installing input watcher for "+elm.type+":"+elm.id);
 				elm.dev.onChanged(function (err,device,type,value) {
 					if (err)	Logger.error(my.logName+": ",err); 
 					else 		my.broadcastState(device,type,value);
-				},false);				
+				});				
 			}
 			else if (elm.type=="MPU6500") {
 				Logger.info("Server       installing input watcher for "+elm.type+":"+elm.id);
 				elm.dev.onChanged(function (err,device,type,value) {
 					if (err)	Logger.error(my.logName+": ",err); 
 					else 		my.broadcastState(device,type,value);
-				},false);	
+				});	
+			}
+			else if (elm.type=="WS2801") {
+				// WS2801 does not implicitly publish all changes, so we do not use the onChanged() method
+				Logger.info("Server       installing publisher for "+elm.type+":"+elm.id);
+				console.log(elm);
+				let targetDev = elm.dev;
+				elm.dev.setPublisher(function (value) {
+					my.broadcastState(targetDev,"WS2801",value);
+				});	
 			}
 		}
 		
@@ -396,6 +412,47 @@ class Server {
 				return msg;
 			}
 
+			else if (target.type=="Action") {
+				// client tells us that an action was selected
+				var optElm, optCmd, optArg;
+				if (!arg.value) arg.value=target.options[0].value;
+				for (var opt of target.options) {
+					if ((!opt.value && opt!=arg.value) || (opt.value && opt.value!=arg.value)) continue;
+					if (target.selected) {
+						optElm = target.selected.elm;
+						optCmd = target.selected.cmd;
+						optArg = target.selected.arg;
+					}
+					if (opt.elm) optElm=opt.elm;
+					if (opt.cmd) optCmd=opt.cmd;
+					if (opt.arg) optArg=opt.arg;
+					if (!opt.arg) optArg = arg.value;
+					break;
+				}
+				if (optElm=="app") return theHardware.appObject[optCmd](null,optArg);
+				else return theHardware.elms[optElm].dev[optCmd](optArg);
+			}
+			
+			else if (target.type=="Button") {
+				// Button action
+				if (this.can(socket,"Button",action.elm,["pressed","down","up"],arg.state)=="ok") {
+					Logger.log("Server       Button "+action.elm+ " -- "+arg.state);
+					target.dev.press(arg.state);
+					return {type:"Button",elm:action.elm,state:arg.state};
+				}
+				else {
+					var msg="Server: unknown action for Button: "+JSON.stringify(action);
+					Logger.error(msg);
+					return msg;
+				}
+			}
+
+			else if (target.type=="Display") {
+				// client wants the msg to be shown
+				target.dev.println(action.arg);
+				return {type:"Display",elm:action.elm,msg:action.arg};
+			}
+
 			else if (target.type=="LED") {
 				// execute blink command for a LED
 				if (this.can(socket,"LED",action.elm,["blink"],action.cmd)=="ok") {
@@ -411,51 +468,6 @@ class Server {
 				}
 				else {
 					var msg="Server: unknown action for LED "+action.elm+": "+JSON.stringify(action);
-					Logger.error(msg);
-					return msg;
-				}
-			}
-
-			else if (target.type=="PWDevice") {
-				// execute dim command for a PWDevice
-				if (this.can(socket,"PWDevice",action.elm,["setDutyCycle"],action.cmd)=="ok") {
-					target.dev.setDutyCycle(arg.value);
-					return {type:"PWDevice",elm:action.elm,state:"dutyCycle="+arg.value};
-				}
-				else if (this.can(socket,"PWDevice",action.elm,["getValue","getDutyCycle"],action.cmd)=="ok") {
-					return {type:"PWDevice",elm:action.elm,state:target.dev.getValue()};
-				}
-				else {
-					var msg="Server: unknown action for PWDevice: "+JSON.stringify(action);
-					Logger.error(msg);
-					return msg;
-				}
-			}
-
-			else if (target.type=="Button") {
-				// Button action
-				if (this.can(socket,"Button",action.elm,["pressed","down","up"],arg.state)=="ok") {
-					Logger.log("Server       Button "+action.elm+ " -- "+arg.state);
-					target.dev.press(arg.state);
-					return {type:"Button",elm:action.elm,state:arg.state};
-				}
-				else {
-					var msg="Server: unknown action for Button: "+JSON.stringify(action);
-					Logger.error(msg);
-					return msg;
-				}
-			}
-
-			else if (target.type=="WS2801") {
-				// client wants to play an LED strip procedure
-				if (this.can(socket,"WS2801",action.elm,["play"],action.cmd)=="ok") {
-					var ok=target.dev.play(onFinished,arg.prog);
-					if (ok) return {type:"WS2801",elm:action.elm,state:"playing",prog:arg.prog};
-					if (socket) this.sendError(socket,'WS2801 '+action.elm+' cannot play "'+arg.prog);
-					return {type:"WS2801",elm:action.elm,state:"cannot play",prog:arg.prog};
-				}
-				else {
-					var msg="Server: unknown action for WS2801: "+JSON.stringify(action);
 					Logger.error(msg);
 					return msg;
 				}
@@ -481,6 +493,26 @@ class Server {
 				}
 			}
 
+			else if (target.type=="PWDevice") {
+				// execute dim command for a PWDevice
+				if (this.can(socket,"PWDevice",action.elm,["setDutyCycle"],action.cmd)=="ok") {
+					target.dev.setDutyCycle(arg.value);
+					return {type:"PWDevice",elm:action.elm,state:"dutyCycle="+arg.value};
+				}
+				else if (this.can(socket,"PWDevice",action.elm,["changeDutyCycle"],action.cmd)=="ok") {
+					target.dev.changeDutyCycle(arg.value,arg.stepSize,arg.delay);
+					return {type:"PWDevice",elm:action.elm,state:"dutyCycle="+arg.value};
+				}
+				else if (this.can(socket,"PWDevice",action.elm,["getValue","getDutyCycle"],action.cmd)=="ok") {
+					return {type:"PWDevice",elm:action.elm,state:target.dev.getValue()};
+				}
+				else {
+					var msg="Server: unknown action for PWDevice: "+JSON.stringify(action);
+					Logger.error(msg);
+					return msg;
+				}
+			}
+
 			else if (target.type=="Speakers") {
 				// client wants a sound file to be played
 				if (this.can(socket,"Speakers",action.elm,["play"],action.cmd)=="ok") {
@@ -500,13 +532,8 @@ class Server {
 					Logger.error(msg);
 					return msg;
 				}
+			}
 
-			}
-			else if (target.type=="Display") {
-				// client wants the msg to be shown
-				target.dev.println(action.arg);
-				return {type:"Display",elm:action.elm,msg:action.arg};
-			}
 			else if (target.type=="TextInput") {
 				// client sends text input
 				if (target.changed && target.changed.elm=="app") {
@@ -516,26 +543,26 @@ class Server {
 					return theHardware.elms[target.changed.elm].dev[target.changed.cmd](action.arg);
 				}
 			}
-			else if (target.type=="Action") {
-				// client tells us that an action was selected
-				var optElm, optCmd, optArg;
-				if (!arg.value) arg.value=target.options[0].value;
-				for (var opt of target.options) {
-					if ((!opt.value && opt!=arg.value) || (opt.value && opt.value!=arg.value)) continue;
-					if (target.selected) {
-						optElm = target.selected.elm;
-						optCmd = target.selected.cmd;
-						optArg = target.selected.arg;
-					}
-					if (opt.elm) optElm=opt.elm;
-					if (opt.cmd) optCmd=opt.cmd;
-					if (opt.arg) optArg=opt.arg;
-					if (!opt.arg) optArg = arg.value;
-					break;
+
+			else if (target.type=="WS2801") {
+				// client wants to play an LED strip procedure
+				if (this.can(socket,"WS2801",action.elm,["play"],action.cmd)=="ok") {
+					var ok=target.dev.play(onFinished,arg.prog);
+					if (ok) return {type:"WS2801",elm:action.elm,state:"playing",prog:arg.prog};
+					if (socket) this.sendError(socket,'WS2801 '+action.elm+' cannot play "'+arg.prog);
+					return {type:"WS2801",elm:action.elm,state:"cannot play",prog:arg.prog};
 				}
-				if (optElm=="app") return theHardware.appObject[optCmd](null,optArg);
-				else return theHardware.elms[optElm].dev[optCmd](optArg);
+				if (this.can(socket,"WS2801",action.elm,["fillColor"],action.cmd)=="ok") {
+					target.dev[action.cmd](arg,target.dev.onChanged);
+					return {type:"WS2801",elm:action.elm,color:arg};
+				}
+				else {
+					var msg="Server: unknown action for WS2801: "+JSON.stringify(action);
+					Logger.error(msg);
+					return msg;
+				}
 			}
+
 			else {
 				var msg="Server: unknown action: "+JSON.stringify(action);
 				Logger.error(msg);
@@ -638,12 +665,12 @@ class Server {
 		
 		var my=theServer;
 		
-		Logger.log("Server       SOCKET sending hardware setup: "+JSON.stringify(theHardware.getSetupJson(),null,4));
+		if (Logger.level>=2) Logger.log("Server       SOCKET sending hardware setup: "+JSON.stringify(theHardware.getSetupJson(),null,4));
 		socket.emit('state',JSON.stringify(theHardware.getSetupJson()));
 
 		var response=JSON.stringify(theHardware.getAllStatesJson());
 		
-		Logger.log("Server       sending ALL STATES "+response);
+		if (Logger.level>=2) Logger.log("Server       sending ALL STATES "+response);
 		socket.emit('state',response);
 		
 		if (my.type!="Master") {

@@ -153,6 +153,15 @@ div.DS1820 {
 	white-space:		pre;
 }
 
+div.ADS1115 {
+	position:			absolute;
+	border-radius:		5px;
+	border:				solid 1px green;
+	padding-left:		5px;
+	font-family:		monospace;
+	white-space:		pre;
+}
+
 .slidecontainer {
 	position:			absolute;
 	width: 100%;

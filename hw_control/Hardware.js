@@ -5,16 +5,82 @@ const isMissing = require("../utils/Logger.js").isMissing;
 const isPresent = require("../utils/Logger.js").isPresent;
 const App 		= require("../server/App.js").App;
 const Api 		= require("../server/App.js").Api;
-const LED 		= require("../hw_devices/Device.js").LED;
+const ADS1115	= require("../hw_devices/ADS1115.js").ADS1115;
 const Button	= require("../hw_devices/Device.js").Button;
-const TextInput	= require("../hw_devices/Device.js").TextInput;
+const Device	= require("../hw_devices/Device.js").Device;
 const Display	= require("../hw_devices/Device.js").Display;
-const PWDevice	= require("../hw_devices/PWDevice.js").PWDevice;
-const WS2801	= require("../hw_devices/WS2801.js");
-const MPU6500	= require("../hw_devices/MPU6500.js");
-const Speakers	= require("../hw_devices/Speakers.js");
-const Microphone= require("../hw_devices/Microphone.js");
 const DS1820	= require("../hw_devices/DS1820.js").DS1820;
+const LED 		= require("../hw_devices/Device.js").LED;
+const Microphone= require("../hw_devices/Microphone.js");
+const MPU6500	= require("../hw_devices/MPU6500.js");
+const PWDevice	= require("../hw_devices/PWDevice.js").PWDevice;
+const Speakers	= require("../hw_devices/Speakers.js");
+const TextInput	= require("../hw_devices/Device.js").TextInput;
+const WS2801	= require("../hw_devices/WS2801.js");
+
+// =========================================================================================================
+
+class Action {}
+Action.schema = {
+	definitions: {
+		action: 	Device.actionStrict,
+		actions: {
+			anyOf: [
+				{	$ref: "#/definitions/action"	},
+				{	type: "array", items: { $ref: "#/definitions/action" },	},
+			]
+		}
+	},
+	properties: {
+		options: {
+			anyof: [
+				{	type: "array", items: { type: "string" } },
+				{	$ref: "#/definitions/actions" },
+			]
+		},
+		selected:	{ $ref: "#/definitions/actions" },
+	},
+}
+
+class FrontPanel {}
+FrontPanel.schema = {
+	definitions: {
+		action: 	Device.actionStrict,
+		actions: {
+			anyOf: [
+				{	$ref: "#/definitions/action"	},
+				{	type: "array", items: { $ref: "#/definitions/action" },	},
+			]
+		}
+	},
+	properties: {
+		init:		{ $ref: "#/definitions/actions" },
+	},
+}
+
+class Label {}
+Label.schema = {
+}
+
+class Task { }
+Task.schema = {
+	definitions: {
+		action: 	Device.action,	// allow additional properties like interval, value
+		actions: {
+			anyOf: [
+				{	$ref: "#/definitions/action"	},
+				{	type: "array", items: { $ref: "#/definitions/action" },	},
+			]
+		}
+	},
+	properties: {
+		monitor:	{
+			$ref: "#/definitions/actions",
+			interval: { type: "number", description: "polling interval in msec" },
+		},
+	}
+}
+
 
 // =========================================================================================================
 
@@ -220,46 +286,21 @@ class Hardware {
 			if (isMissing(elm.name))	elm.name	= elm.id;
 			if (isMissing(elm.emulate)) elm.emulate = false;
 			
-			if		(elm.type=="LED") {
-				// create a led
-				elm.dev=new LED(
-					elm.id,
-					elm.name,
-					elm.color || "red",
-					elm.gpio,
-					elm.emulate
-				);
+			if (elm.type=="Action") {
+				;	// do nothing
 			}
-			else if	(elm.type=="PWDevice") {
-				// create a pulse width modulated device
-				elm.dev = new PWDevice(
+			else if (elm.type=="ADS1115") {				
+				// create AD converter
+				elm.dev = new ADS1115 (
 					elm.id,
 					elm.name,
-					elm.gpio,
-					elm.frequency ? elm.frequency : 0,
+					elm.channel || 0,
+					isPresent(elm.gain) ? elm.gain : 1,
+					elm.scale || 0,
+					isPresent(elm.sps) ? elm.sps : 4,
 					elm.emulate
 				);
-				if (elm.duty) elm.dev.limitDutyCycle(elm.duty);
-			}
-			else if	(elm.type=="Display") {
-				// create a character display
-				elm.dev = new Display(
-					elm.id,
-					elm.name,
-					elm.xDim?elm.xDim:40,
-					elm.yDim?elm.yDim:4,
-					elm.emulate
-				);
-			}
-			else if	(elm.type=="TextInput") {
-				// create a text input element
-				elm.dev = new TextInput(
-					elm.id,
-					elm.name,
-					elm.cols?elm.cols:20,
-					elm.rows?elm.rows:1,
-					elm.emulate
-				);
+				elm.dev.connect();
 			}
 			else if (elm.type=="Button") {
 				// create a Button
@@ -272,62 +313,22 @@ class Hardware {
 					elm.emulate
 				);
 				if (isPresent(elm.pressed) || isPresent(elm.downUp) || isPresent(elm.down) || isPresent(elm.up)  ) {
-					Logger.info("Hardware     installing watcher for "+elm.id);
+					Logger.info("Hardware     installing buttonChange watcher for "+elm.id);
 					elm.dev.onChanged(this.onButtonChanged,true);
 				}
 			}
-			else if (elm.type=="WS2801") {		
-				// create led strip
-				elm.dev = new WS2801 (
+			else if	(elm.type=="Display") {
+				// create a character display
+				elm.dev = new Display(
 					elm.id,
 					elm.name,
-					elm.numLEDs,
-					elm.emulate
-				);
-				elm.dev.connect("/dev/spidev"+elm.spi,elm.speed);
-				
-				if (elm.reverse) elm.dev.reverse(); 
-			}
-			else if (elm.type=="MPU6500") {		
-				// create motion sensor
-				elm.dev = new MPU6500 (
-					elm.id,
-					elm.name,
-					elm.image3d,
-					elm.orientation || [0,0,0],
-					elm.emulate
-				);
-				elm.dev.connect();
-			}
-			else if (elm.type=="Speakers") {		
-				// create speakers
-				elm.dev = new Speakers (
-					elm.id,
-					elm.name,
-					this.type,
-					elm.devName || "",
-					elm.emulate
-				);
-			}
-			else if (elm.type=="Microphone") {		
-				// create microphone
-				elm.dev = new Microphone (
-					elm.id,
-					elm.name,
+					elm.xDim?elm.xDim:40,
+					elm.yDim?elm.yDim:4,
 					elm.emulate
 				);
 			}
 			else if (elm.type=="DS1820") {		
 				// create temperature sensor (1-wire)
-				var monitor=null;
-				if (elm.monitor) {
-					if (elm.monitor.elm) {
-						var target= this.elms[elm.monitor.elm];
-						monitor={};
-						monitor.func = target.dev[elm.monitor.cmd].bind(target.dev);
-						monitor.interval=elm.monitor.interval || 5000;
-					}
-				}
 				var below={};
 				if (elm.below) {
 					below.value=elm.below.value;
@@ -351,20 +352,103 @@ class Hardware {
 					elm.name,
 					elm.gpio,
 					elm.addresse,
-					monitor,
 					below,
 					between,
 					above,
 					elm.emulate
 				);
 			}
-			else if (elm.type=="Action") {
-				if (isPresent(elm.selected)) {
-					;
+			else if (elm.type=="FrontPanel") {
+				; // do nothing
+			}
+			else if (elm.type=="Label") {
+				; // do nothing
+			}
+			else if	(elm.type=="LED") {
+				// create a led
+				elm.dev=new LED(
+					elm.id,
+					elm.name,
+					elm.color || "red",
+					elm.gpio,
+					elm.emulate
+				);
+			}
+			else if (elm.type=="Microphone") {		
+				// create microphone
+				elm.dev = new Microphone (
+					elm.id,
+					elm.name,
+					elm.emulate
+				);
+			}
+			else if (elm.type=="MPU6500") {		
+				// create motion sensor
+				elm.dev = new MPU6500 (
+					elm.id,
+					elm.name,
+					elm.image3d,
+					elm.orientation || [0,0,0],
+					elm.emulate
+				);
+				elm.dev.connect();
+			}
+			else if	(elm.type=="PWDevice") {
+				// create a pulse width modulated device
+				elm.dev = new PWDevice(
+					elm.id,
+					elm.name,
+					elm.gpio,
+					elm.frequency ? elm.frequency : 0,
+					elm.emulate
+				);
+				if (elm.duty) elm.dev.limitDutyCycle(elm.duty);
+			}
+			else if (elm.type=="Speakers") {		
+				// create speakers
+				elm.dev = new Speakers (
+					elm.id,
+					elm.name,
+					this.type,
+					elm.devName || "",
+					elm.emulate
+				);
+			}
+			else if (elm.type=="Task") {		
+				// create a monitoring task
+				if (elm.monitor && elm.monitor.elm) {
+					var target = this.elms[elm.monitor.elm];
+					let func = target.dev[elm.monitor.cmd].bind(target.dev);
+					var arg = elm.monitor.arg;
+					if (elm.monitor.arg && elm.monitor.arg.elm && elm.monitor.arg.cmd) {
+						// convert arg into a function
+						var argTarget= this.elms[elm.monitor.arg.elm].dev;
+						arg = argTarget[elm.monitor.arg.cmd].bind(argTarget);
+					}
+					target.dev.monitor(func,arg,elm.monitor.interval || 5000);
 				}
 			}
-			else if (elm.type=="Label" || elm.type=="FrontPanel") {
-				; // do nothing
+			else if	(elm.type=="TextInput") {
+				// create a text input element
+				elm.dev = new TextInput(
+					elm.id,
+					elm.name,
+					elm.cols?elm.cols:20,
+					elm.rows?elm.rows:1,
+					elm.emulate
+				);
+			}
+			else if (elm.type=="WS2801") {		
+				// create led strip
+				elm.dev = new WS2801 (
+					elm.id,
+					elm.name,
+					elm.numLEDs,
+					elm.emulate
+				);
+				elm.dev.connect("/dev/spidev"+elm.spi,elm.speed);
+				
+				if (elm.reverse) elm.dev.reverse(); 
 			}
 			else {		
 				// unknown element type
@@ -482,25 +566,31 @@ class Hardware {
 		var states=[];
 		for (var elm of Object.values(this.elms)) {
 
-			if 		(elm.type=="FrontPanel") {
+			if 		(elm.type=="Action") {
+				; // actions have no associated state
+			}
+			else if (elm.type=="ADS1115") {
+				states.push({id:elm.id,type:elm.type,value:elm.dev.getValue()});
+			}
+			else if (elm.type=="DS1820") {
+				states.push({id:elm.id,type:elm.type,value:elm.dev.getValue()});
+			}
+			else if (elm.type=="FrontPanel") {
 				;
 			}
 			else if (elm.type=="Label") {
 				;
 			}
-			else if (elm.type=="WS2801") {
-				states.push({id:elm.id,type:elm.type,value:elm.dev.getValue()});
-			}
 			else if (elm.type=="MPU6500") {
 				states.push({id:elm.id,type:elm.type,value:elm.dev.getValue()});
 			}
-			else if (elm.type=="Action") {
-				; // actions have no associated state
-			}
-			else if (elm.type=="DS1820") {
+			else if (elm.type=="PWDevice") {
 				states.push({id:elm.id,type:elm.type,value:elm.dev.getValue()});
 			}
-			else if (elm.type=="PWDevice") {
+			else if (elm.type=="Task") {
+				; // taks have no state; this might be changed to "running" or "stopped"
+			}
+			else if (elm.type=="WS2801") {
 				states.push({id:elm.id,type:elm.type,value:elm.dev.getValue()});
 			}
 			else if (elm.dev.direction=="out") {
@@ -600,203 +690,25 @@ class Hardware {
 	
 }
 
-Hardware.getApiDescription = function() {
-	return [
-		{	cmd:"getSetup",
-			effect:"returns all elements of a hardware description"
-		},
-		{	cmd:"getState",
-			effect:"returns the current state of all elements"
-		},
-		{	cmd:"getServers",
-			effect:"returns a list of the currently active Berry servers"
-		},
-		{	cmd:"stop",
-			effect:"shut down the hardware (and the Berry server"
-		},
-	];
-}
-
-Hardware.action = {
-	type: "object", 
-	properties: {
-		elm: {
-			anyOf: [
-				{ type: "string",},
-				{ type: "array",items: { type: "string" } }
-			]
-		},
-		cmd:		{ type: "string",		},
-		arg: {
-			anyOf: [
-				{ type: "string" },
-				{ type: "number" },
-				{ type: "boolean" },
-				{ type: "object" },
-			]
-		},
-		when: {
-			anyOf : [ { type:"string"}, {type:"number"}, {type:"boolean"} ],
-			description: "perform cmd only if this value matches the getValue() method of elm",
-		},
-		after:	{ type: "integer", description: "a new, isolated timer (msec)"			},
-		delay:	{ type: "integer", description: "a delay timer (msec) bound to the element",	},
-		once:	{ type: "boolean", description: "if true: do not change a delay timer which has already been scheduled", default: false	},
-		clear:	{ type: "boolean", description: "if true: clear a scheduled delay timer", default: false	},
-	},
-	additionalProperties: true,
-	required: ["elm","cmd"],
-};
-Hardware.actionStrict = JSON.parse(JSON.stringify(Hardware.action));
-Hardware.actionStrict.additionalProperties=false;
-
 // the schema for HWD element  types
 Hardware.schema= {
-	Action: {
-		definitions: {
-			action: 	Hardware.actionStrict,
-			actions: {
-				anyOf: [
-					{	$ref: "#/definitions/action"	},
-					{	type: "array", items: { $ref: "#/definitions/action" },	},
-				]
-			}
-		},
-		properties: {
-			options: {
-				anyof: [
-					{	type: "array", items: { type: "string" } },
-					{	$ref: "#/definitions/actions" },
-				]
-			},
-			selected:	{ $ref: "#/definitions/actions" },
-		},
-	},	
-	Button: {
-		definitions: {
-			action: 	Hardware.actionStrict,
-			actions: {
-				anyOf: [
-					{	$ref: "#/definitions/action"	},
-					{	type: "array", items: { $ref: "#/definitions/action" },	},
-				]
-			}
-		},
-		properties: {
-			debounce:	{ type: "integer", description: "debouncing time in msecs, reasonable values are 30..80"},
-			down:		{ $ref: "#/definitions/actions" },
-			downUp:		{ $ref: "#/definitions/actions" },
-			up:			{ $ref: "#/definitions/actions" },
-			pressed:	{ $ref: "#/definitions/actions" },
-		},
-	},
-	Display: {
-		properties: {
-			color:		{ type: "string", description: "use color name or #RGB notation" },
-			xDim:		{ type: "integer", description: "number of chars horizontally"},
-			yDim:		{ type: "integer", description: "number of lines vertically" },
-		},
-	},
-	DS1820: {
-		definitions: {
-			action: 	Hardware.action,	// allow additional properties like interval, value
-			actions: {
-				anyOf: [
-					{	$ref: "#/definitions/action"	},
-					{	type: "array", items: { $ref: "#/definitions/action" },	},
-				]
-			}
-		},
-		properties: {
-			addresse:	{ type: "string", description: "unique ID, on the Raspi look at /sys/bus/w1/devices/*" },
-			monitor:	{
-				$ref: "#/definitions/actions",
-				interval: { type: "number", description: "polling interval in msec" },
-			},
-			below:	{ 
-				$ref: "#/definitions/actions",
-				value: { type:"number", description: "threshold in °C" },
-			},
-			between:	{ 
-				$ref: "#/definitions/actions",
-				value: { type:"array", description: "thresholds in °C", items: [{type:"number"},{type:"number"}] },
-			},
-			above:	{ 
-				$ref: "#/definitions/actions",
-				value: { type:"number", description: "threshold in °C" },
-			},
-		}
-	},
-	FrontPanel: {
-		definitions: {
-			action: 	Hardware.actionStrict,
-			actions: {
-				anyOf: [
-					{	$ref: "#/definitions/action"	},
-					{	type: "array", items: { $ref: "#/definitions/action" },	},
-				]
-			}
-		},
-		properties: {
-			init:		{ $ref: "#/definitions/actions" },
-		},
-	},
-	Label: {
-	},
-	LED: {
-	},
-	Microphone: {
-	},
-	MPU6500: {
-		properties: {
-			image3d:	{ type: "string", description: "e.g. xyz.glb, file must be in client/img directory"	},
-			orientation:{ 
-				type: 	"array",
-				minItems:3,
-				items: [ {type:"integer"}, {type:"integer"}, {type:"integer"} ],
-				description: "x,y,z direction of sensor in default position",
-				default: [0,0,0],
-			},
-		},
-	},
-	PWDevice: {
-		properties: {
-			range:		{ type: "array", items: [ {type: "number"}, {type: "number"} ], default:[0,1] },
-			duty:		{ type: "array", items: [ {type: "number"}, {type: "number"} ], default:0 },
-			frequency:	{ type: "number", description: "in Hz", default: 50},
-			drives:		{ tpye: "string", description: "id of element connected to the PWM port", },
-		}
-	},
-	Speakers: {
-		properties: {
-			devName:	{ type: "string", description:"optional, a value like 'hw:1,0' to describe the audio device",}
-		}
-	},
-	TextInput: {		
-		definitions: {
-			action: 	Hardware.actionStrict,
-			actions: {
-				anyOf: [
-					{	$ref: "#/definitions/action"	},
-					{	type: "array", items: { $ref: "#/definitions/action" },	},
-				]
-			}
-		},
-		properties: {
-			rows:		{ type: "integer" 	},
-			cols:		{ type: "integer" 	},
-			changed:	{ $ref: "#/definitions/actions" },
-		}
-	},
-	WS2801: {
-		properties: {
-			spi:		{ type: "string", description: "0.0, 0.1, 1.0 or 1.1" 	},
-			reverse: 	{ type: "integer", minimum:0, maximum:1, default:0 		},
-			numLEDs:	{ type: "integer", minimum:1							},
-		},
-		required:	["spi","numLEDs"],
-	},
+	Action		: Action.schema,
+	ADS1115		: ADS1115.schema,
+	Button		: Button.schema,
+	Display		: Display.schema,
+	DS1820		: DS1820.schema,
+	FrontPanel	: FrontPanel.schema,
+	Label		: Label.schema,
+	LED			: LED.schema,
+	Microphone	: Microphone.schema,
+	MPU6500		: MPU6500.schema,
+	PWDevice	: PWDevice.schema,
+	Speakers	: Speakers.schema,
+	Task		: Task.schema,
+	TextInput	: TextInput.schema,
+	WS2801		: WS2801.schema,
 }
+	
 // merge inherited properties into each element schema
 for (var elm in Hardware.schema) {
 	var schema = Hardware.schema[elm];
@@ -830,6 +742,24 @@ for (var elm in Hardware.schema) {
 	}
 
 };
+
+Hardware.getApiDescription = function() {
+	return [
+		{	cmd:"getSetup",
+			effect:"returns all elements of a hardware description"
+		},
+		{	cmd:"getState",
+			effect:"returns the current state of all elements"
+		},
+		{	cmd:"getServers",
+			effect:"returns a list of the currently active Berry servers"
+		},
+		{	cmd:"stop",
+			effect:"shut down the hardware (and the Berry server"
+		},
+	];
+}
+
 
 // =========================================================================================================
 

@@ -84,6 +84,20 @@ class MPU6500 extends Device {
 		this.dev=null;
 	}	
 }
+
+MPU6500.schema = {
+	properties: {
+		image3d:	{ type: "string", description: "e.g. xyz.glb, file must be in client/img directory"	},
+		orientation:{ 
+			type: 	"array",
+			minItems:3,
+			items: [ {type:"integer"}, {type:"integer"}, {type:"integer"} ],
+			description: "x,y,z direction of sensor in default position",
+			default: [0,0,0],
+		},
+	},
+}
+
 MPU6500.getApiDescription = function() {
 	return [
 		{	cmd:"getValue",

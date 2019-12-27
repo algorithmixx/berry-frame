@@ -260,4 +260,10 @@ class MorseSnd {
 	}
 }
 
+Speakers.schema = {
+	properties: {
+		devName:	{ type: "string", description:"optional, a value like 'hw:1,0' to describe the audio device",}
+	}
+}
+
 module.exports = Speakers;

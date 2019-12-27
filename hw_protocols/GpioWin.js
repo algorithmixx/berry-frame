@@ -32,7 +32,7 @@ class GpioWin {
 		var now=new Date().getTime();
 		this.value=value;
 		if (!this.visualize) return;
-		Logger.log(
+		if(Logger.level>=2) Logger.log(
 			(now-this.startedAt+"").padStart(24)+" / "
 			+this.gpio+(this.direction=='in'?' ← ':' → ')
 			+this.left+(this.value==0?' ':'█')+this.right

@@ -9,7 +9,7 @@ var 	Gpio; // GPIO lib (or emulation)
 
 class Device {
 
-	// This class represents a generic device which is connected to a gpio.
+	// This abstract class represents a generic device which is connected to a gpio.
 	
 	constructor(id,name,gpios,emulate) {
 		this.id			= id;
@@ -18,6 +18,10 @@ class Device {
 		this.protocol	= "on/off";
 		this.emulate	= emulate;		
 		this.dev		= null;
+	}
+	
+	monitor(func,arg,interval) {
+		setInterval(function() { func(arg); }, interval);
 	}
 	
 	onChanged(watcher) {
@@ -40,6 +44,40 @@ class Device {
 	}
 		
 }
+
+Device.action = {
+	type: "object", 
+	properties: {
+		elm: {
+			anyOf: [
+				{ type: "string",},
+				{ type: "array",items: { type: "string" } }
+			]
+		},
+		cmd:		{ type: "string",		},
+		arg: {
+			anyOf: [
+				{ type: "string" },
+				{ type: "number" },
+				{ type: "boolean" },
+				{ type: "object" },
+			]
+		},
+		when: {
+			anyOf : [ { type:"string"}, {type:"number"}, {type:"boolean"} ],
+			description: "perform cmd only if this value matches the getValue() method of elm",
+		},
+		after:	{ type: "integer", description: "a new, isolated timer (msec)"			},
+		delay:	{ type: "integer", description: "a delay timer (msec) bound to the element",	},
+		once:	{ type: "boolean", description: "if true: do not change a delay timer which has already been scheduled", default: false	},
+		clear:	{ type: "boolean", description: "if true: clear a scheduled delay timer", default: false	},
+	},
+	additionalProperties: true,
+	required: ["elm","cmd"],
+};
+Device.actionStrict = JSON.parse(JSON.stringify(Device.action));
+Device.actionStrict.additionalProperties=false;
+
 
 // =========================================================================================================
 
@@ -74,7 +112,7 @@ class Display extends Device {
 	}
 
 	println(text) {
-		Logger.log("Display      "+text);
+		if(Logger.level>=2) Logger.log("Display      "+text);
 		this.contents[this.yPos]=(""+text).substr(0,this.xDim);	// ignore horizontal overflow
 		if(++this.yPos>this.yDim) {
 			this.contents.shift();
@@ -92,6 +130,15 @@ class Display extends Device {
 	}
 	
 }
+
+Display.schema = {
+	properties: {
+		color:		{ type: "string", description: "use color name or #RGB notation" },
+		xDim:		{ type: "integer", description: "number of chars horizontally"},
+		yDim:		{ type: "integer", description: "number of lines vertically" },
+	},
+}
+
 Display.getApiDescription = function () {	
 	return [
 		{	cmd:"getValue",
@@ -138,6 +185,24 @@ class TextInput extends Device {
 	}
 	
 }
+
+TextInput.schema = {		
+	definitions: {
+		action: 	Device.actionStrict,
+		actions: {
+			anyOf: [
+				{	$ref: "#/definitions/action"	},
+				{	type: "array", items: { $ref: "#/definitions/action" },	},
+			]
+		}
+	},
+	properties: {
+		rows:		{ type: "integer" 	},
+		cols:		{ type: "integer" 	},
+		changed:	{ $ref: "#/definitions/actions" },
+	}
+}
+
 TextInput.getApiDescription = function () {	
 	return [
 		{	cmd:	"setValue",
@@ -154,7 +219,7 @@ TextInput.getApiDescription = function () {
 
 class IODevice extends Device {
 
-	// This class represents a generic device which is connected to a single gpio.
+	// This abstract class represents a generic device which is connected to a single gpio.
 	
 	constructor(id,name,gpio,direction,emulate) {
 		// expects the (output) gpio (BCM notation) for the device
@@ -217,7 +282,7 @@ class IODevice extends Device {
 
 class InputDevice extends IODevice {
 
-	// This class represents a generic input device which is connected to a gpio.
+	// This abstract class represents a generic input device which is connected to a gpio.
 	
 	constructor(id,name,gpio,emulate) {
 		super(id,name,gpio,"in",emulate);		
@@ -254,6 +319,26 @@ class Button extends InputDevice {
 		if (this.watcher) this.watcher(0,this,"Button",state=="down" ? 1 : (state=="up" ? 0 : 2));
 	}
 }
+
+Button.schema = {
+	definitions: {
+		action: 	Device.actionStrict,
+		actions: {
+			anyOf: [
+				{	$ref: "#/definitions/action"	},
+				{	type: "array", items: { $ref: "#/definitions/action" },	},
+			]
+		}
+	},
+	properties: {
+		debounce:	{ type: "integer", description: "debouncing time in msecs, reasonable values are 30..80"},
+		down:		{ $ref: "#/definitions/actions" },
+		downUp:		{ $ref: "#/definitions/actions" },
+		up:			{ $ref: "#/definitions/actions" },
+		pressed:	{ $ref: "#/definitions/actions" },
+	},
+}
+
 Button.getApiDescription = function () {	
 	return [
 		{	cmd:"press",
@@ -275,7 +360,7 @@ Button.getApiDescription = function () {
 
 class OutputDevice extends IODevice {
 
-	// This class represents a generic output device which is connected to a gpio.
+	// This abstract class represents a generic output device which is connected to a gpio.
 	// It offers methods to switch the device on and off and to toggle it.
 	
 	constructor(id,name,gpio,emulate) {
@@ -421,6 +506,10 @@ class LED extends OutputDevice {
 	}
 	
 }
+
+LED.schema = {
+}
+
 LED.getApiDescription = function () {	
 	return [
 		{	cmd:"blink",

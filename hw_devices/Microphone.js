@@ -31,6 +31,9 @@ class Microphone extends Device {
 	}
 }
 
+Microphone.schema = {
+}
+
 Microphone.getApiDescription = function() {
 	return [
 		{	cmd:"getValue",

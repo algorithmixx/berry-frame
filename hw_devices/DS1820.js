@@ -9,7 +9,7 @@ class DS1820 extends Device {
 		A temperature sensor based on 1-wire protocol
 	*/
 	
-	constructor(id,name,gpio,addresse,monitor,below,between,above,emulate) {
+	constructor(id,name,gpio,addresse,below,between,above,emulate) {
 
 		super(id,name,[gpio],emulate);
 		
@@ -21,8 +21,6 @@ class DS1820 extends Device {
 		
 		this.addresse		= addresse;
 		this.oneWireId		= addresse;			// the technical id of our sensor on the 1-wire bus
-		this.monitor		= monitor;
-		this.monitoring		= null;
 		
 		Logger.info("DS1820       connecting to addresse: "+addresse+" , above="+(above.value||"")+", below="+(below.value||""));
 		if (this.emulate) {
@@ -46,13 +44,7 @@ class DS1820 extends Device {
 				else								Logger.info("DS1820       found oneWireId = "+that.oneWireId);
 				that.loadValue(null);
 			});
-		}
-		
-		
-		var that=this;
-		if(monitor) {
-			this.monitoring=setInterval(function() { that.loadValue(monitor.func); }, monitor.interval);			
-		}
+		}		
 	}
 
 	loadValue(cb) {
@@ -81,6 +73,34 @@ class DS1820 extends Device {
 	release() {
 	}
 }
+
+DS1820.schema = {
+	definitions: {
+		action: 	Device.action,	// allow additional properties like interval, value
+		actions: {
+			anyOf: [
+				{	$ref: "#/definitions/action"	},
+				{	type: "array", items: { $ref: "#/definitions/action" },	},
+			]
+		}
+	},
+	properties: {
+		addresse:	{ type: "string", description: "unique ID, on the Raspi look at /sys/bus/w1/devices/*" },
+		below:	{ 
+			$ref: "#/definitions/actions",
+			value: { type:"number", description: "threshold in °C" },
+		},
+		between:	{ 
+			$ref: "#/definitions/actions",
+			value: { type:"array", description: "thresholds in °C", items: [{type:"number"},{type:"number"}] },
+		},
+		above:	{ 
+			$ref: "#/definitions/actions",
+			value: { type:"number", description: "threshold in °C" },
+		},
+	}
+}
+
 DS1820.getApiDescription = function() {
 	return [
 		{	cmd:"getValue",

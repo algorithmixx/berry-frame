@@ -15,7 +15,7 @@ class I2CWin {
 	}
 
 	readWordSync(addr, reg) {
-		return 25642;
+		return Math.round(Math.random()* 32000);
 	}
 	
 	readSync(addr,reg,len) {
@@ -23,10 +23,29 @@ class I2CWin {
 		while(len--) bytes.push(24);
 		return bytes;
 	}
+	
+	writeSync(addr,reg,buffer) {
+		var buf = (typeof buffer == "undefined") ? reg : buffer;
+		if(Logger.level>=2) Logger.log("I2CWin       write ["+addr+"] "+reg + " : "+JSON.stringify(buf));
+		return this;
+	}
 
 	writeByteSync(addr, reg, byteVal) {
-		Logger.log("I2CWin       write @addr : "+reg + " : "+byteVal);
+		var val = (typeof byteVal=="undefined") ? reg : byteVal;
+		if(Logger.level>=2) Logger.log("I2CWin       write ["+addr+"] "+reg + " : "+val);
 		return this;
+	}
+
+	writeWordSync(addr, reg, wordVal) {
+		var val = (typeof wordVal=="undefined") ? reg : wordVal;
+		if(Logger.level>=2) Logger.log("I2CWin       write ["+addr+"] "+reg + " : "+val);
+		return this;
+	}
+	
+	write(addr,reg,buffer) {
+		var buf = (typeof buffer == "undefined") ? reg : buffer;
+		if(Logger.level>=2) Logger.log("I2CWin       write ["+addr+"] "+reg + " : "+JSON.stringify(buf));
+		return this;		
 	}
 }
 

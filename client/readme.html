@@ -426,9 +426,19 @@
 ### 6.4) ELEMENT definitions (SPECIFIC attributes):
 
 ```
-FrontPanel: {}
+Action: {
+    target:    "the id of the element to which the Action refers",
+    cmd:       "the command which shall be invoked on the element",
+    prog:      "a parameter to be sent together with the invocation",
+    arg:       "a string containing JSON elements and their values"
+               "the string will be split into pieces along comma"
+               "the resulting arguments will be used in the invocation"
+}
 
-Label: {}
+ADS1115: {
+	channel:	analog input channel (0..3),
+	gain:		"a floating point number between 0 and 16",
+}
 
 Button: {
     debounce:    a time in msec to avoid unwanted double triggers,
@@ -451,17 +461,10 @@ Button: {
          A given Button can only use one of the following combinations:
          (pressed),(up),(down),(downUp),(pressed+down),(pressed+up),(pressed+downUp)
          The "cmd" will be executed when the event fires (i.e. the user clicks/presses/releases the button)
-    
-LED: {
-    color:       "the (CSS) color of the LED when lighted",
-    interval:    the duration (msec) of a on/off cycle in a "blink" command, default: 250,
-    ratio:       a percentage of ON time during blinking, default: 50,
-    cycles:      number of repetitions, default: 3
-    duration:    defines a limit (msec) for the blinking process (excesss cycles being ignored)
-}
 
-PWDevice: {
-    drives:      "the id of another element which is connected to the PWDevice, e.g. a LED",
+Display: {
+    xDim:      width in pixels,
+    yDim:      height in pixels,
 }
 
 DS1820; {
@@ -487,19 +490,37 @@ DS1820; {
     },
 }
 
-MPU6500: {}
+FrontPanel: {}
 
-Display: {
-    xDim:      width in pixels,
-    yDim:      height in pixels,
+Label: {}
+
+LED: {
+    color:       "the (CSS) color of the LED when lighted",
+    interval:    the duration (msec) of a on/off cycle in a "blink" command, default: 250,
+    ratio:       a percentage of ON time during blinking, default: 50,
+    cycles:      number of repetitions, default: 3
+    duration:    defines a limit (msec) for the blinking process (excesss cycles being ignored)
+}
+
+Microphone: {}
+
+MPU6500: {
+	orientation: "array in degrees [x,y,z]"
+
+}
+
+PWDevice: {
+    drives:      "the id of another element which is connected to the PWDevice, e.g. a LED",
+}
+
+Speakers: {
+	devName:	"optional, a string like 'hw:1,0' describing the audio device",
 }
 
 TextInput: {
     cols:      the number of columns,
     rows:      the number of rows,
 }
-
-Microphone: {}
 
 WS2801: {
    numLEDs:    the number of LEDs on the strip,
@@ -508,18 +529,6 @@ WS2801: {
    reverse:    can be 0 or 1.0, reverses the sequence of the LEDs,
 }
 
-Speakers: {
-	devName:	"optional, a string like 'hw:1,0' describing the audio device",
-}
-
-Action: {
-    target:    "the id of the element to which the Action refers",
-    cmd:       "the command which shall be invoked on the element",
-    prog:      "a parameter to be sent together with the invocation",
-    arg:       "a string containing JSON elements and their values"
-               "the string will be split into pieces along comma"
-               "the resulting arguments will be used in the invocation"
-}
 ```
 
 
@@ -943,13 +952,32 @@ Action: {
 	The ``Speakers`` device has a method named ``say`` which uses the Google speech synthesis API
 	to convert text into mp3 audio. Using the API requires a credential file which you must
 	get from Google (register for API use, create a project, enable the TTS API, etc..). 
-	If you have that file, place it in BERRY_HOME and add 
+	If you have that file, place it in BERRY_HOME and add as a first line into ``./berry``:
 	``set GOOGLE_APPLICATION_CREDENTIALS=path_to_your_credentials_file`` (on Windows) or 
 	``export GOOGLE_APPLICATION_CREDENTIALS=path_to_your_credentials_file`` (on the Raspi).
 	
 	If you do not want to use the ``say`` method of ``Speakers`` there is no need to 
 	do anything.
+
+
+### 10.4) I²C devices
+
+	When using devices which are connected via the i²c bus it may be helpful to install
+	``sudo apt-get install python-smbus i2c-tools``.
 	
+	Then you can use ``i2cdetect -y 1`` and ``i2cget`` to check if your device is working 
+	before you control it via __berry-frame__.
+
+
+### 10.5) Speakers
+
+	Connecting a speaker via analogie cable is quite simple. ON the Rasp ZERO you could 
+	use a speaker HAT module (based on IS2 bus) or a USB audio dongle (which will probably
+	require you to define ``devName:"hw:1,0"`` in the HWD. You might even be able to
+	use a bluetooth connection, see here: 
+	https://www.raspberry-pi-geek.de/ausgaben/rpg/2018/04/musik-per-bluetooth-an-einen-lautsprecher-senden/
+	
+
 ## <a name="c11"/> 11) SAMPLE BERRIES
 
 ### Hello

@@ -26,7 +26,7 @@ class BerryFrame {
 		// get current script name
 
 		this.scriptName	 = process.argv[1].replace(/.*[/\\]/,'').replace(/[.]js$/,'');
-		this.versionId	 = "1.2.7";
+		this.versionId	 = "1.2.9";
 		
 		// find known Berry types and their default properties (description, port, rev, ..)
 		this.berryTypes = this.findBerryTypes();
@@ -50,7 +50,7 @@ class BerryFrame {
 		this.os = process.platform;
 		SystemInfo.system(function(data) {
 			if (data.manufacturer=="Raspi") this.os="raspi";
-			Logger.info("BerryFrame   SYSTEM = "+JSON.stringify(data));			
+			Logger.info("BerryFrame   platform = "+JSON.stringify(data));			
 		});
 		
 		// set logging level

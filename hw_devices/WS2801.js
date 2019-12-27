@@ -64,8 +64,14 @@ class WS2801 extends Device {
 
 		this.progs = {};			// fix playing programs
 		this.adjustedBuffer = {data:[]};
+		
+		this.publisher=null;
 	}
 
+	setPublisher(publisher) {
+		this.publisher = publisher;
+	}
+	
 	connect(spiDeviceName,clockSpeed){
 		// connect to SPI port
 
@@ -128,7 +134,9 @@ class WS2801 extends Device {
 			this.lastWriteTime = microtime.now();
 			var that=this;
 			this.spiDevice.write(this.adjustedBuffer,function(rc) {
-				if (rc==null)	callback(buffer);
+				if (rc==null) {
+					if (callback) callback(buffer);
+				}
 				else			Logger.error("SPI "+that.name+": could not write "+JSON.stringify(buffer));
 			});
 			return true;
@@ -163,9 +171,14 @@ class WS2801 extends Device {
 		this.fill(0,0,0,callback); 
 	}
 
+	fillColor(col) {
+		// fill strip with color and publish changed state
+		Logger.log("WS2801       fillColor "+col);
+		this.fill(parseInt("0x"+col.substr(1,2)),parseInt("0x"+col.substr(3,2)),parseInt("0x"+col.substr(5,2)),this.publisher);
+	}
+	
 	fill(r,g,b,callback) {
 		// fill whole strip with one color; send directly if callback given
-		// Logger.log("WS2801       fill "+r+","+g+","+b,this.spiDevice);
 		if (this.spiDevice) {      
 			var colors = this.getRGBArray(r,g,b);
 			for (var i=0; i<(this.channelCount); i+=3){
@@ -173,6 +186,7 @@ class WS2801 extends Device {
 				this.values[i+1]=colors[1];
 				this.values[i+2]=colors[2];
 			}
+			if (Logger.level>=2) Logger.log("WS2801       fill "+JSON.stringify(this.values));
 			if (isPresent(callback)) this.sendRgbBuffer(this.values,callback);
 		}    	
 	}
@@ -297,6 +311,15 @@ class WS2801 extends Device {
 		}
 		return false;
 	}
+}
+
+WS2801.schema = {
+	properties: {
+		spi:		{ type: "string", description: "0.0, 0.1, 1.0 or 1.1" 	},
+		reverse: 	{ type: "integer", minimum:0, maximum:1, default:0 		},
+		numLEDs:	{ type: "integer", minimum:1							},
+	},
+	required:	["spi","numLEDs"],
 }
 
 WS2801.getApiDescription = function() {

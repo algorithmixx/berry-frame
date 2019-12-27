@@ -108,11 +108,40 @@ class BerryUI {
 			// handle a response describing the state of one or all hardware elements
 			if (response.states && my.hardwares[hw]) {
 				for (var device of response.states) {
-					if (device.type=="WS2801" && device.value) {
-						// LED strip
-						var data = device.value.data;
-						for(var l=0,v=0;v<data.length;l++,v+=3) {
-							$("#s_"+hw+"_"+l).css("background", "rgb("+my.ledAdjust(data[v])+","+my.ledAdjust(data[v+1])+","+my.ledAdjust(data[v+2])+")");
+					if		(device.type=="ADS1115") {
+						// show the current voltage
+						var val= ""+device.value;
+						$("#hw_"+hw+"_"+device.id).html(val);
+					}
+					else if (device.type=="Display") {
+						// show the contents of the display
+						$("#hw_"+hw+"_"+device.id).html(device.value.join("<br/>"));
+					}
+					else if (device.type=="DS1820") {
+						// show the current temperature
+						var val= ""+device.value+" °C";
+						$("#hw_"+hw+"_"+device.id).html(val);
+					}
+					else if (device.type=="MPU6500") {
+						// show the current orientation
+						app.updateRotations(hw,device.id,device.value);
+					}
+					else if (device.type=="PWDevice") {
+						// show the current duty cycle
+						var elm=my.hardwares[hw].elms[device.id];
+						var val= Math.round(elm.range[0]+(elm.range[1]-elm.range[0])*(device.value-elm.duty[0])/(elm.duty[1]-elm.duty[0]));
+						$("#hw_"+hw+"_"+device.id).val(val);
+						$("#hw_"+hw+"_v_"+device.id).html((""+val).padStart(3));
+						$("#hw_"+hw+"_a_"+device.id).css({transform: 'rotate('+(val+180)+'deg)'});
+						if (elm.drives) {
+							var driven = my.hardwares[hw].elms[elm.drives];
+							if (driven && driven.type=="LED") {
+								$("#hw_"+hw+"_"+elm.drives).css({
+									opacity: 0.6+(val*0.004),
+									filter:"brightness("+(0.4+val*0.006)+")",
+									backgroundColor:(val>0) ? driven.color : "#ccc",
+								});
+							}
 						}
 					}
 					else if (device.type=="Speakers") {
@@ -133,36 +162,12 @@ class BerryUI {
 							new MorseSnd().play(device.value.morse,device.value.unit|| 150);
 						}
 					}
-					else if (device.type=="MPU6500") {
-						// show the current orientation
-						app.updateRotations(hw,device.id,device.value);
-					}
-					else if (device.type=="DS1820") {
-						// show the current temperature
-						var val= ""+device.value+" °C";
-						$("#hw_"+hw+"_"+device.id).html(val);
-					}
-					else if (device.type=="PWDevice") {
-						// show the current duty cycle
-						var elm=my.hardwares[hw].elms[device.id];
-						var val= Math.round(elm.range[0]+(elm.range[1]-elm.range[0])*(device.value-elm.duty[0])/(elm.duty[1]-elm.duty[0]));
-						$("#hw_"+hw+"_"+device.id).val(val);
-						$("#hw_"+hw+"_v_"+device.id).html((""+val).padStart(3));
-						$("#hw_"+hw+"_a_"+device.id).css({transform: 'rotate('+(val+180)+'deg)'});
-						if (elm.drives) {
-							var driven = my.hardwares[hw].elms[elm.drives];
-							if (driven && driven.type=="LED") {
-								$("#hw_"+hw+"_"+elm.drives).css({
-									opacity: 0.6+(val*0.004),
-									filter:"brightness("+(0.4+val*0.006)+")",
-									backgroundColor:(val>0) ? driven.color : "#ccc",
-								});
-							}
+					else if (device.type=="WS2801" && device.value) {
+						// LED strip
+						var data = device.value.data;
+						for(var l=0,v=0;v<data.length;l++,v+=3) {
+							$("#s_"+hw+"_"+l).css("background", "rgb("+my.ledAdjust(data[v])+","+my.ledAdjust(data[v+1])+","+my.ledAdjust(data[v+2])+")");
 						}
-					}
-					else if (device.type=="Display") {
-						// show the contents of the display
-						$("#hw_"+hw+"_"+device.id).html(device.value.join("<br/>"));
 					}
 					else {
 						// all other devices
@@ -449,27 +454,7 @@ class BerryUI {
 			// produce visual representation of the element on the front panel
 			var it="";	// hardware item html
 			
-			if (elm.type=="FrontPanel") {
-				// the panel itself
-				if (elm.style) $("#hardware_"+hw)[0].style=elm.style;
-				if (elm.title) $("#hardware_"+hw).prop("title",elm.title);
-			}
-
-			else if (elm.type=="Label") {
-				it="<div id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style='"+elm.style+"'>"+elm.name+"</div>";
-			}
-
-			else if (elm.type=="Button") {
-				if (elm.color) elm.style+=";background-color:"+elm.color+";";
-				// we have a button which will be handled individually by the application
-				var handles = "";					
-				if (elm.pressed				) handles += "' onclick='app.sendAction("+hw+",{elm:\""+elm.id+"\",state:\"pressed\"});'";
-				if (elm.down || elm.downUp	) handles += " onmousedown='app.sendAction("+hw+",{elm:\""+elm.id+"\",state:\"down\"});'";
-				if (elm.up || elm.downUp	) handles += " onmouseup='app.sendAction("+hw+",{elm:\""+elm.id+"\",state:\"up\"});'";
-				it=	"<button id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style='"
-					+elm.style+"'"+handles+">"+elm.name+"</button>";
-			}
-			else if (elm.type=="Action") {
+			if 		(elm.type=="Action") {
 				if (elm.options.length==1) {
 					var value = elm.options[0].value;
 					if (!value) value = elm.options[0]; 
@@ -492,59 +477,45 @@ class BerryUI {
 				}
 			}
 
-			else if (elm.type=="LED") {
-				it="<div id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style='"+elm.style+"'><div style='margin-top:5px;padding-left:5px;padding-right:5px;'>"+elm.name+"</div></div>";
+			else if (elm.type=="ADS1115") {
+				it="	<div id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||elm.name)+"' class='"+elm.type+"' style='"+elm.style+"'>?</div>";
+			}
+
+			else if (elm.type=="Button") {
+				if (elm.color) elm.style+=";background-color:"+elm.color+";";
+				// we have a button which will be handled individually by the application
+				var handles = "";					
+				if (elm.pressed				) handles += "' onclick='app.sendAction("+hw+",{elm:\""+elm.id+"\",state:\"pressed\"});'";
+				if (elm.down || elm.downUp	) handles += " onmousedown='app.sendAction("+hw+",{elm:\""+elm.id+"\",state:\"down\"});'";
+				if (elm.up || elm.downUp	) handles += " onmouseup='app.sendAction("+hw+",{elm:\""+elm.id+"\",state:\"up\"});'";
+				it=	"<button id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style='"
+					+elm.style+"'"+handles+">"+elm.name+"</button>";
 			}
 
 			else if (elm.type=="Display") {
 				it="<div id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style='"+elm.style+"'></div>";
 			}
 
-			else if (elm.type=="TextInput") {
-				it="<div id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style='"+elm.style+"'>"
-					+"<textarea rows='"+elm.rows+"' cols='"+elm.cols+"'></textarea><button onclick='app.sendTextInput("+hw+",\""+elm.id+"\");' style='vertical-align:top'>&#9166;</button></div>";
+			else if (elm.type=="DS1820") {
+				it="	<div id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||elm.name)+"' class='"+elm.type+"' style='"+elm.style+"'>?</div>";
 			}
 
-			else if (elm.type=="PWDevice") {
-				// pulse width modulation
-				if (!elm.duty) elm.duty=[0,1];
-				if (!elm.range) elm.range=[0,100];
-				var val=""+elm.duty[0]+"+"+(elm.duty[1]-elm.duty[0])+"*(this.value-"+elm.range[0]+")/"+(elm.range[1]-elm.range[0]);
-				it= "<div class='slidecontainer' style='"+elm.style+"' title='"+(elm.title||"")+"'>"
-					+"<input type='range' min='"+elm.range[0]+"' max='"+elm.range[1]+"' class='slider' id='hw_"+hw+"_"+elm.id
-					+"' oninput='app.sendAction("+hw+",{elm:\""+elm.id+"\",cmd:\"setDutyCycle\",\"value\":"+val+"});'/>"
-					+"<span id='hw_"+hw+"_v_"+elm.id+"' style='float:right'>50</span>"
-					+"<span display:'inline-block'>"+elm.name+"</span>&nbsp;&nbsp;<span id='hw_"+hw+"_a_"+elm.id+"' style='display:inline-block;font-size:150%;font-weight:800'>→</span></div>"
-				;
+			else if (elm.type=="FrontPanel") {
+				// the panel itself
+				if (elm.style) $("#hardware_"+hw)[0].style=elm.style;
+				if (elm.title) $("#hardware_"+hw).prop("title",elm.title);
 			}
 
-			else if (elm.type=="WS2801") {
-				it ="<div id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||elm.name)+"' class='"+elm.type+"' style='"+elm.style+"'>";
-				it+="	<div style='position:relative'>";
-				it+="		<div style='position:absolute;left:-90px;top:20px;background:#e7e7e7;border:dashed 1px black;width:88px;height:30px;'></div>";
-				it+="		<div style='position:absolute;left:40px;display:inline-block;background:#e7e7e7;border:dashed 1px lightgray;width:"+(elm.numLEDs/2*31+50)+"'>";
-				var mid=Math.floor(elm.numLEDs/2);
-				for (var l=0,nr=elm.numLEDs-1,ll=elm.numLEDs-1;l<elm.numLEDs;l++) {
-					if (l<mid) {
-						it+="<div class='WS2801_led' title='"+nr+"' id='s_"+hw+"_"+nr+"'>&nbsp;</div>";
-						nr--;
-					}
-					else if (l==mid) {
-						it+="<br/>";
-						if (elm.numLEDs%2) it+="<div class='WS2801_led' id='s_"+hw+"_"+nr+"' title='"+nr+"' style='margin-left:"+((l+1)*27)+"px'>&nbsp;</div><br/>";
-						else { 
-							l--;
-							mid=0;
-						}
-						nr=0;
-					}
-					else {
-						it+="<div class='WS2801_led' title='"+nr+"' id='s_"+hw+"_"+nr+"'>&nbsp;</div>";
-						ll--;
-						nr++;
-					}
-				}
-				it+="</div></div></div>";
+			else if (elm.type=="Label") {
+				it="<div id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style='"+elm.style+"'>"+elm.name+"</div>";
+			}
+
+			else if (elm.type=="LED") {
+				it="<div id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style='"+elm.style+"'><div style='margin-top:5px;padding-left:5px;padding-right:5px;'>"+elm.name+"</div></div>";
+			}
+
+			else if (elm.type=="Microphone") {
+				it="	<div id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style='"+elm.style+"'>🎤"+elm.name+"</div>";
 			}
 
 			else if (elm.type=="MPU6500") {
@@ -574,16 +545,60 @@ class BerryUI {
 				$("#hardware_"+hw).append(it);
 			}
 
+			else if (elm.type=="PWDevice") {
+				// pulse width modulation
+				if (!elm.duty) elm.duty=[0,1];
+				if (!elm.range) elm.range=[0,100];
+				var val=""+elm.duty[0]+"+"+(elm.duty[1]-elm.duty[0])+"*(this.value-"+elm.range[0]+")/"+(elm.range[1]-elm.range[0]);
+				it= "<div class='slidecontainer' style='"+elm.style+"' title='"+(elm.title||"")+"'>"
+					+"<input type='range' min='"+elm.range[0]+"' max='"+elm.range[1]+"' class='slider' id='hw_"+hw+"_"+elm.id
+					+"' oninput='app.sendAction("+hw+",{elm:\""+elm.id+"\",cmd:\"setDutyCycle\",\"value\":"+val+"});'/>"
+					+"<span id='hw_"+hw+"_v_"+elm.id+"' style='float:right'>50</span>"
+					+"<span display:'inline-block'>"+elm.name+"</span>&nbsp;&nbsp;<span id='hw_"+hw+"_a_"+elm.id+"' style='display:inline-block;font-size:150%;font-weight:800'>→</span></div>"
+				;
+			}
+
 			else if (elm.type=="Speakers") {
 				it="	<div id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style='"+elm.style+"'>"+elm.name+"🔊</div>";
 			}		
 
-			else if (elm.type=="Microphone") {
-				it="	<div id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style='"+elm.style+"'>🎤"+elm.name+"</div>";
+			else if (elm.type=="Task") {
+				// tasks are not shown in the client
+				it="";
+			}		
+
+			else if (elm.type=="TextInput") {
+				it="<div id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style='"+elm.style+"'>"
+					+"<textarea rows='"+elm.rows+"' cols='"+elm.cols+"'></textarea><button onclick='app.sendTextInput("+hw+",\""+elm.id+"\");' style='vertical-align:top'>&#9166;</button></div>";
 			}
 
-			else if (elm.type=="DS1820") {
-				it="	<div id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||elm.name)+"' class='"+elm.type+"' style='"+elm.style+"'>?</div>";
+			else if (elm.type=="WS2801") {
+				it ="<div id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||elm.name)+"' class='"+elm.type+"' style='"+elm.style+"'>";
+				it+="	<div style='position:relative'>";
+				it+="		<div style='position:absolute;left:-90px;top:20px;background:#e7e7e7;border:dashed 1px black;width:88px;height:30px;'></div>";
+				it+="		<div style='position:absolute;left:40px;display:inline-block;background:#e7e7e7;border:dashed 1px lightgray;width:"+(elm.numLEDs/2*31+50)+"'>";
+				var mid=Math.floor(elm.numLEDs/2);
+				for (var l=0,nr=elm.numLEDs-1,ll=elm.numLEDs-1;l<elm.numLEDs;l++) {
+					if (l<mid) {
+						it+="<div class='WS2801_led' title='"+nr+"' id='s_"+hw+"_"+nr+"'>&nbsp;</div>";
+						nr--;
+					}
+					else if (l==mid) {
+						it+="<br/>";
+						if (elm.numLEDs%2) it+="<div class='WS2801_led' id='s_"+hw+"_"+nr+"' title='"+nr+"' style='margin-left:"+((l+1)*27)+"px'>&nbsp;</div><br/>";
+						else { 
+							l--;
+							mid=0;
+						}
+						nr=0;
+					}
+					else {
+						it+="<div class='WS2801_led' title='"+nr+"' id='s_"+hw+"_"+nr+"'>&nbsp;</div>";
+						ll--;
+						nr++;
+					}
+				}
+				it+="</div></div></div>";
 			}
 
 			else {

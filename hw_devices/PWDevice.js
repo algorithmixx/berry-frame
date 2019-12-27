@@ -69,8 +69,10 @@ class PWDevice extends Device {
 		Logger.log("PWDevice     limits: "+this.lowerBound+"..."+this.upperBound+"  ("+this.extraBound+")");
 	}
 	
-	setDutyCycle(value) {
-		// change the duty cycle
+	setDutyCycle(args) {
+		// change the duty cycle instantly to the new value
+		
+		var value	= args && args.value ? args.value : args;		
 		
 		if		(this.extraBound>this.lowerBound && value < this.extraBound) value=this.lowerBound;
 		else if (value<this.lowerBound) value=this.lowerBound;
@@ -84,6 +86,35 @@ class PWDevice extends Device {
 			Logger.log("PWDevice     ["+this.gpios[0]+"]  setDuty "+value+" ("+duty+")");
 			this.dev.pwmWrite(duty);
 		}
+		if (this.watcher) this.watcher(0,this,this.constructor.name,value);
+	}
+
+	changeDutyCycle(args) {
+		// change the duty cycle to value, using stepSize and delay
+
+		var value	= args && args.value	? args.value	: args;
+		var	stepSize= args && args.stepSize	? args.stepSize	: 0.01;
+		var	delay	= args && args.delay	? args.delay	: 150;
+		
+		if (isMissing(stepSize)) stepSize=0.002;
+		if (isMissing(delay)) delay = 150;
+		if		(this.extraBound>this.lowerBound && value < this.extraBound) value=this.lowerBound;
+		else if (value<this.lowerBound) value=this.lowerBound;
+		else if (value>this.upperBound) value=this.upperBound;
+		var oldValue=this.dutyCycle;
+		if (value<oldValue) stepSize= -stepSize;
+		var nrSteps=Math.ceil((value-oldValue)/stepSize);
+		var that=this;
+		for (let s = 1;s<= nrSteps;s++) {
+			let val= (s==nrSteps) ? value : (oldValue+stepSize*s);
+			setTimeout(function() {
+				let duty=Math.round(val*that.pwmRange);
+				if (Logger.level>=2) Logger.log("PWDevice     ["+that.gpios[0]+"]  setDuty "+val+" ("+duty+") "+new Date().getTime());
+				if (that.pwmType=="hard")	that.dev.write(val);
+				else 						that.dev.pwmWrite(duty);
+			},delay*s);
+		}
+		this.dutyCycle=value;
 		if (this.watcher) this.watcher(0,this,this.constructor.name,value);
 	}
 
@@ -110,6 +141,16 @@ class PWDevice extends Device {
 		}
 	}
 }
+
+PWDevice.schema = {
+	properties: {
+		range:		{ type: "array", items: [ {type: "number"}, {type: "number"} ], default:[0,1] },
+		duty:		{ type: "array", items: [ {type: "number"}, {type: "number"} ], default:0 },
+		frequency:	{ type: "number", description: "in Hz", default: 50},
+		drives:		{ tpye: "string", description: "id of element connected to the PWM port", },
+	}
+}
+
 PWDevice.getApiDescription = function() {
 	return [
 		{	cmd:"getDutyCycle",
@@ -123,6 +164,14 @@ PWDevice.getApiDescription = function() {
 				{name:"value",	meaning:"a fractional number between 0 and 1"},
 			],
 			effect:"updates the duty cycle (0..1)"
+		},
+		{	cmd:"changeDutyCycle",
+			args:[
+				{name:"value",		meaning:"a fractional number between 0 and 1"		},
+				{name:"stepSize",	meaning:"size of increment", default:0.002			},
+				{name:"delay",		meaning:"delay after each step in msec", default:150},
+			],
+			effect:"updates the duty cycle (0..1) with a given rate of change"
 		},
 	];
 }
