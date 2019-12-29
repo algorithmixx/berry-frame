@@ -75,7 +75,7 @@ class WS2801 extends Device {
 	connect(spiDeviceName,clockSpeed){
 		// connect to SPI port
 
-		Logger.info("WS2801       connect "+spiDeviceName);
+		Logger.info("WS2801       connect "+spiDeviceName+", speed="+clockSpeed);
 		
 		this.spiDeviceName	= spiDeviceName;
 		if (this.spiDeviceName.replace(/^[^0-9]+/,'')[0]=="0") {
@@ -171,7 +171,8 @@ class WS2801 extends Device {
 		this.fill(0,0,0,callback); 
 	}
 
-	fillColor(col) {
+	fillColor(arg) {
+		var col = (typeof arg=="string") ? arg : arg.value;
 		// fill strip with color and publish changed state
 		Logger.log("WS2801       fillColor "+col);
 		this.fill(parseInt("0x"+col.substr(1,2)),parseInt("0x"+col.substr(3,2)),parseInt("0x"+col.substr(5,2)),this.publisher);
@@ -316,6 +317,7 @@ class WS2801 extends Device {
 WS2801.schema = {
 	properties: {
 		spi:		{ type: "string", description: "0.0, 0.1, 1.0 or 1.1" 	},
+		speed:		{ type: "integer", description: "Baudrate, 1000..100000 eg."},
 		reverse: 	{ type: "integer", minimum:0, maximum:1, default:0 		},
 		numLEDs:	{ type: "integer", minimum:1							},
 	},

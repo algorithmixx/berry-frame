@@ -267,7 +267,7 @@ class IODevice extends Device {
 		var that=this;
 		this.dev.watch(function(err,value,gpio) {
 			if (err) { Logger.error("gpio watching "+that.gpio); return; }
-			Logger.log("IODevice     signal changed: "+that.constructor.name+":"+that.id+", value="+value+" at gpio "+gpio);
+			Logger.log("IODevice     signal changed: "+that.constructor.name+":"+that.id+", value="+value+" at gpio "+that.gpio);
 			that.watcher(0,that,that.constructor.name,value);
 		});
 	}

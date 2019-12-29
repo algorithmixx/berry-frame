@@ -8,7 +8,10 @@ const isPresent 	= require("../utils/Logger.js").isPresent;
 
 const theServer 	= require("../server/Server.js").theServer;			// singleton instance
 const theHardware	= require("../hw_control/Hardware.js").theHardware;	// singleton instance
+const Hardware		= require("../hw_control/Hardware.js").Hardware;
 const SystemInfo	= require("systeminformation");
+
+console.log("......"+JSON.stringify(Hardware.deviceTypes));
 
 // =========================================================================================================
 
@@ -26,7 +29,7 @@ class BerryFrame {
 		// get current script name
 
 		this.scriptName	 = process.argv[1].replace(/.*[/\\]/,'').replace(/[.]js$/,'');
-		this.versionId	 = "1.2.9";
+		this.versionId	 = "1.2.11";
 		
 		// find known Berry types and their default properties (description, port, rev, ..)
 		this.berryTypes = this.findBerryTypes();
@@ -98,6 +101,8 @@ class BerryFrame {
 					+"\n"
 			;
 		}
+		var deviceTypes = JSON.stringify(Hardware.deviceTypes);
+		
 		var getopt = 
 			require('node-getopt').create([
 				['h' , 'help',					'display this help'														],
@@ -112,8 +117,6 @@ class BerryFrame {
 				['p' , 'port=',					'port number, default: depending on berryType (8080..8090)'				],
 				['m' , 'master=localhost:9000',	'register at Master server, default:localhost:9000'						],
 				['r' , 'revision=',				'use a specific hardware revision, default:current/latest revison'		],
-
-				['c' , 'cmd=',					'initial command(s) to be excuted'										],
 				
 				['l' , 'logLevel=0',			'level of logging (on stdout)'											],
 				['e' , 'emulate',				'emulate the devices, default:true on Windows, false on Raspberry'		],
@@ -138,6 +141,8 @@ class BerryFrame {
 					+'\n'
 					+'More Berries:\n'+'    see https://followthescore.org/berry/index.html\n'
 					+'\n'
+					+'Available Device Types:\n'+deviceTypes
+					+'\n'
 					+'Notes:\n'
 					+'  The program will run forever, acting as a server for http requests and socket connections.\n'
 					+'  Typically you will add "&" to the commandline (on Unix) to run it in the background.\n'
@@ -149,7 +154,7 @@ class BerryFrame {
 					+'  Requests can be made via socket connection or REST-like via http://<berryServer:port>/api/<request>.\n'
 					+'  REST requests do not have surrounding braces; member names and data values need not be quoted,\n'
 					+'  unnecessary commas are allowed. Example:\n' 
-					+'  http://myberryserver:9004/api/id:motionA,cmd:getValue,\n'
+					+'  http://myberryserver:9004/api?id:motionA,cmd:getValue,\n'
 			)
 			.parseSystem()
 		;
@@ -255,7 +260,7 @@ class BerryFrame {
 			this.cmdLine.options['browse'],
 			
 		);
-		theServer.start(this.cmd);
+		theServer.start();
 		return;	// we never arrive here
 	}
 	

@@ -834,12 +834,22 @@ WS2801: {
 	* Use the symbolic name RASPBERRYPI or search in your network for that name and note the IP
 	  that was assigned to it by your network infrastructur.
 	* Login with ``putty`` as user "pi" with password "raspberry".
-	* call ``sudo raspi-config`` to configure localization, hardware interfaces, network name and other items
+	* configure localization, hardware interfaces, network name and other items
+	
 	* you may also want to change the password
 	* also select "expand filesystem" from the "advanced options"
-	* close the config tool, reboot the Raspi and reconnect via putty
-
-	* update and upgrade your system: ``sudo apt-get update`` then ``sudo apt-get upgrade`` then again ``sudo apt-get update``
+	* close the config tool, reboot the Raspi and reconnect via putty:
+````
+	sudo raspi-config
+	
+````
+	then reboot, update and upgrade your system:
+````
+	sudo apt-get -y update
+	sudo apt-get -y upgrade
+	sudo apt-get -y update
+	
+````
 	
 	* [WiFi] create a file named ``wifi_restart`` in /home/pi with the following contents:
 ````
@@ -850,10 +860,16 @@ WS2801: {
         ip link set wlan0 down
         ip link set wlan0 up
     fi
+	
 ````
 	Make the file executable (``chmod +x wifi_restart``) and make sure that this file 
 	will be started regularly, say every two minutes, 
-	calling ``sudo crontab -e`` and adding ``*/2 * * * * /home/pi/wifi_rebooter``
+	calling 
+````
+	sudo crontab -e
+	
+````
+	and adding ``*/2 * * * * /home/pi/wifi_restart``
 
 	The last step is necessary to make sure that your Raspi will regularly try to re-connect
 	to the WiFi network after it lost connection.
@@ -861,62 +877,77 @@ WS2801: {
 
 #### 10.2.3) Install some __basic tools__
 	
-      Install an __ftp server__ so that you can easily transfer files from the PC to the Raspi.
+	Install an __ftp server__ so that you can easily transfer files from the PC to the Raspi
+	(login with user "pi" or set up a separate user if you want more security).
 	
-	* ``sudo apt-get install proftpd``
-	* Open your ftp client on Windows and connect to the raspberry pi as user "pi"
+	Install wiringpi.
+	
+````
+	sudo apt-get -y install proftpd wiringpi
+	
+````
 
-      Install __wiringPi__
-	``sudo apt-get install wiringpi``
-
-      Install __node and npm__
+	Install __node and npm__
 
 	Please note: If you have a Raspi Zero you have an armv61 processor.
 	In that case you should install directly from the "dist" directory of nodejs.org
 	the latest version published for the ARMv61 processor:
 ````
-    curl -o node-v11.15.0-linux-armv6l.tar.gz https://nodejs.org/dist/v11.15.0/node-v11.15.0-linux-armv6l.tar.gz
-    tar -xzf node-v11.15.0-linux-armv6l.tar.gz
-    sudo cp -r node-v11.15.0-linux-armv6l/*  /usr/local/
+	curl -o node-v11.15.0-linux-armv6l.tar.gz https://nodejs.org/dist/v11.15.0/node-v11.15.0-linux-armv6l.tar.gz
+	tar -xzf node-v11.15.0-linux-armv6l.tar.gz
+	sudo cp -r node-v11.15.0-linux-armv6l/*  /usr/local/
 	rm node-v11.15.0-linux-armv6l.tar.gz
 	rm -fr node-v11.15.0-linux-armv6l
 	
 ````
-	Then remove the tar file and the unpacked directory which were created in the pwd by the above commands.
 	
 	If you have a __newer processor__ you can use ``apt`` to get the latest version of nodejs and npm:
-	* ``sudo apt-get install nodejs npm``
+
+````
+	sudo apt-get install nodejs npm
+	
+````
 
 
 #### 10.2.4) Install __berry-frame__		
 
-	* call ``sudo apt-get install libasound2-dev`` 
-	because its header file will be needed during the next step.
+	For the speaker modul we need a certain header file.
+	We need some tools to play audio files.
+	For i²c bus testing we should install i2c-tools.
+	Allow _berries_ to shutdown the Raspi.
+````
+	sudo apt-get -y install libasound2-dev alsa-tools bluealsa omxplayer mpg123 mpgpython-smbus i2c-tools
+	sudo chmod +s /sbin/shutdown
 	
-	* if you want to play mp3 audio files on the Raspi, call ``sudo apt-get install omxplayer``
+````
+	
+	Create you BERRY_HOME directory, e.g. ``/home/pi/berries``; enter the directory and call:
+````
+	npm install berry-frame
+	
+````
+	
+	* copy some binaries from ``node_modules/berry-frame/bin/`` to BERRY_HOME and make them executable.
+````
+	cp node_modules/berry-frame/bin/berry .
+	chmod +x berry
+	cp node_modules/berry-frame/bin/onreboot . 
+	chmod +x onreboot
+	cp node_modules/berry-frame/bin/monitor . 
+	chmod +x monitor
+	
+````
 
-	Create you BERRY_HOME directory, e.g. ``/home/pi/berries``
+	* call 
+````
+	./berry
 	
-	* Install __berry-frame__: ``npm install berry-frame``
-	
-	* copy the binaries ( ``berry`` , ``onreboot`` , ``monitor`` )
-	from ``node_modules/berry-frame/bin/`` to BERRY_HOME and make them executable.
-	
-	 ```
-	 cp node_modules/berry-frame/bin/berry .
-	 chmod +x berry
-	 cp node_modules/berry-frame/bin/onreboot . 
-	 chmod +x onreboot
-	 cp node_modules/berry-frame/bin/monitor . 
-	 chmod +x monitor
-	 ```
-
-	* call ``./berry`` and __wait until the second part of the installation has completed__.
-	This can take several minutes.
+````
+	and __wait until the second part of the installation has completed__.
+	This can take several minutes. When it shows a message telling something like
+	"added 21 packages ..." everything has been installed; then use CTRL-C to terminate the process.
 
 	* Call ``./berry`` again and you should only see the syntax help.
-
-	* ``sudo chmod +s /sbin/shutdown`` This step will allow _berries_ to shutdown the Raspi.
 
 	* Look into ``onreboot``, adapt it to your neds and call "sudo crontab -e";
 	choose the "nano" editor and add the following line to the end of sudo´s crontab:
@@ -962,16 +993,13 @@ WS2801: {
 
 ### 10.4) I²C devices
 
-	When using devices which are connected via the i²c bus it may be helpful to install
-	``sudo apt-get install python-smbus i2c-tools``.
-	
-	Then you can use ``i2cdetect -y 1`` and ``i2cget`` to check if your device is working 
+	You can use ``i2cdetect -y 1`` and ``i2cget`` to check if your device is working 
 	before you control it via __berry-frame__.
 
 
 ### 10.5) Speakers
 
-	Connecting a speaker via analogie cable is quite simple. ON the Rasp ZERO you could 
+	Connecting a speaker via analogue cable is quite simple. ON the Rasp ZERO you could 
 	use a speaker HAT module (based on IS2 bus) or a USB audio dongle (which will probably
 	require you to define ``devName:"hw:1,0"`` in the HWD. You might even be able to
 	use a bluetooth connection, see here: 

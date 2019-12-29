@@ -71,6 +71,12 @@ class Server {
 	stop(wait) {
 		// unregister the server and exit from the running process
 		
+		// perform final commands specified in the HWD
+		for(var exitAct of theHardware.getActions("exit")) {
+			Logger.log("Server       perform final HWD action: "+JSON.stringify(exitAct));
+			theHardware.handleAction("frontPanel",exitAct,0);
+		}
+
 		// inform the application that we are going to stop
 		if (theHardware.appObject && theHardware.appObject.onStop) theHardware.appObject.onStop();
 			
@@ -106,7 +112,7 @@ class Server {
 		else {
 			// under windows: reboot == just restart the application (do not reboot windows)
 			if (reboot) my.restart();
-			else my.stop();
+			else my.stop(1000);
 		}
 	}
 	
@@ -129,7 +135,7 @@ class Server {
 		theServer.stop(1000);
 	}
 	
-	start(initialActions) {
+	start() {
 		// import libraries needed by the server
 
 		this.http 		= require('http').createServer(this.handleHttp);
@@ -182,7 +188,6 @@ class Server {
 			else if (elm.type=="WS2801") {
 				// WS2801 does not implicitly publish all changes, so we do not use the onChanged() method
 				Logger.info("Server       installing publisher for "+elm.type+":"+elm.id);
-				console.log(elm);
 				let targetDev = elm.dev;
 				elm.dev.setPublisher(function (value) {
 					my.broadcastState(targetDev,"WS2801",value);
@@ -220,60 +225,19 @@ class Server {
 		if (this.browse) {
 			require('child_process').exec("rundll32 url.dll,FileProtocolHandler http://localhost:"+this.port);
 		}
-		
-		// perform initial commands specified in the HWD
-		my.performHwdAction(theHardware.getInitActions());
-		
-		// invoke the startup function of the application object;
-		// if we have initialActions to be performed, pass a function to the application object
-		// which will allow it to perform those actions
 
 		var my=theServer;
+		
+		// perform initial commands specified in the HWD
+		for(var initAct of theHardware.getActions("init")) {
+			Logger.log("Server       perform initial HWD action: "+JSON.stringify(initAct));
+			theHardware.handleAction("frontPanel",initAct,0);
+		}
+		
+		// invoke the startup function of the application object;
 		if (theHardware.appObject && theHardware.appObject.onStart) {
-			if (initialActions) {
-				theHardware.appObject.onStart(function() { 
-					my.performAction(initialActions.split(";"));
-				});
-			}
-			else {
-				theHardware.appObject.onStart( null );
-			}
-		}
-		else {
-			// perform initial action
-			if (initialActions!="") {
-				this.performAction(initialActions.split(";"));
-			}
-		}
-		
-	}
-
-	performHwdAction(actions,done) {
-		// executes the first element in the list
-		// and recursively calls itself with the shifted list
-		// so, finally all cmds will be performed one after the other
-		if (actions.length<=0) return;		
-		var action = actions.shift();
-		var actionJson = JSON.stringify(action);
-		var my=this;
-		if (actions.length>0)	this.action(null,actionJson,function(proc) { my.performHwdAction(actions,done);	});	
-		else 					this.action(null,actionJson,done);
-	}
-		
-	performAction(actions,done) {
-		// executes the first element in the list
-		// and recursively calls itself with the shifted list
-		// so, finally all cmds will be performed one after the other
-		
-		var action = actions.shift();
-		// surround with {}, embrace attributes with quotes
-		var actionJson = ("{"+action+"}")
-			.replace(/([a-zA-Z][a-zA-Z_0-9]*) *:/g,'"$1":')
-			.replace(/:([a-zA-Z][a-zA-Z_0-9 ]*)/g,':"$1"')
-		;
-		var my=this;
-		if (actions.length>0)	this.action(null,actionJson,function(proc) { my.performAction(actions,done);	});	
-		else 					this.action(null,actionJson,done);	
+			theHardware.appObject.onStart( null );
+		}		
 	}
 	
 	handleSocketAsServer(socket) {
@@ -536,12 +500,11 @@ class Server {
 
 			else if (target.type=="TextInput") {
 				// client sends text input
-				if (target.changed && target.changed.elm=="app") {
-					return theHardware.appObject[target.changed.cmd](null,action.arg);
+				var acts = (target.changed && !Array.isArray(target.changed)) ? [target.changed] : target.changed;
+				for (var act of acts) {
+					theHardware.handleAction(action.elm,act,action.value);
 				}
-				else {
-					return theHardware.elms[target.changed.elm].dev[target.changed.cmd](action.arg);
-				}
+				return {type:"TextInput",value:action.value,action:target.changed};
 			}
 
 			else if (target.type=="WS2801") {
@@ -739,11 +702,11 @@ class Server {
 			;
 			Logger.log("Server       received API request: "+actionJson);
 			var msg = my.action(null,actionJson,null);
-			if (msg.help) {
+			if (msg && msg.help) {
 				// deliver help text as pre-formatted HTML
 				response.write("<pre>"+JSON.stringify(msg.help,null,4).replace(/\\n/g,"<br/>")+"</pre>");
 			}
-			else {
+			else if (msg) {
 				response.write(JSON.stringify(msg));
 			}
 			return response.end();
@@ -862,4 +825,5 @@ class Server {
 
 // Create a single instance and export it
 var theServer=new Server();
-module.exports.theServer = theServer;
+module.exports.Server	= Server;
+module.exports.theServer= theServer;

@@ -12,8 +12,9 @@ echo -----------------------------------------------------------
 	goto loop
 
 :restart
-	type restart.cmd
 	sleep 3
+	type restart.cmd
+	sleep 1
 	call start restart.cmd
 	sleep 5
 	del restart.cmd

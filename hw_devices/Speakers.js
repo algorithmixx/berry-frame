@@ -24,6 +24,11 @@ class Speakers extends Device {
 	}
 
 	say(text) {
+		if (typeof text=="string") Logger.log("Speakers     tts input = "+text);
+		else {
+			Logger.error("Speakers: text must be string. ("+text+")");
+			return;
+		}
 		const fs = require('fs');
 		const util = require('util');
 		const client = new (require('@google-cloud/text-to-speech').TextToSpeechClient)();
@@ -46,10 +51,12 @@ class Speakers extends Device {
 		})();
 	}
 	
-	play(fileName) {
+	play(arg) {
 		// play the given file (wav format)
 		// if there is already a file being played the request will be ignored.
 		// if fileName contains commas, it gets split along the commas and a random element will be played
+		
+		var fileName = (typeof arg=="string") ? arg : arg.file;
 		
 		if (this.fileName!="--") {
 			if (this.watcher) this.watcher(0,this,"Speakers","already playing .. "+this.fileName);
@@ -102,13 +109,14 @@ class Speakers extends Device {
 			}
 		}
 		else {
+			// on Raspberry
 			if (this.fileName.toLowerCase().endsWith(".mp3")) {
 				var childProc = require('child_process'); 
 				try {
 					var args = ["./"+this.appType+"/audio/"+this.fileName];
-					if (this.devName!="") { args.push("-o"); args.push("alsa:"+this.devName); }
+					if (this.devName!="") { args.unshift(this.devName); args.unshift("-a");  }
 					Logger.log("Speakers     playing (Raspi): "+this.fileName+" .. "+JSON.stringify(args));
-					childProc.spawn('omxplayer', args, {stdio:"inherit"});
+					childProc.spawn('mpg123', args, {stdio:"inherit"});
 					// we should change this only after the sub process has terminated.
 					var that=this;
 					setTimeout(function() { 
@@ -124,7 +132,7 @@ class Speakers extends Device {
 				const Sound	= require('node-aplay');
 				var file = this.appType+"/audio/"+this.fileName;
 				var args = ["./"+file];
-				if (this.devName!="") { args.push("-D"); args.push(this.devName); }
+				if (this.devName!="") { args.unshift(this.devName); args.unshift("-D");  }
 				Sound.prototype.playDev = function(args) {
 					this.stopped=false;
 					this.process = require('child_process').spawn('aplay', args);

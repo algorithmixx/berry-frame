@@ -41,6 +41,11 @@ Action.schema = {
 		selected:	{ $ref: "#/definitions/actions" },
 	},
 }
+Action.getApiDescription = function() {
+	return "";
+}
+
+// =========================================================================================================
 
 class FrontPanel {}
 FrontPanel.schema = {
@@ -55,12 +60,23 @@ FrontPanel.schema = {
 	},
 	properties: {
 		init:		{ $ref: "#/definitions/actions" },
+		exit:		{ $ref: "#/definitions/actions" },
 	},
 }
+FrontPanel.getApiDescription = function() {
+	return "";
+}
+
+// =========================================================================================================
 
 class Label {}
 Label.schema = {
 }
+Label.getApiDescription = function() {
+	return "";
+}
+
+// =========================================================================================================
 
 class Task { }
 Task.schema = {
@@ -80,7 +96,9 @@ Task.schema = {
 		},
 	}
 }
-
+Task.getApiDescription = function() {
+	return "";
+}
 
 // =========================================================================================================
 
@@ -463,14 +481,19 @@ class Hardware {
 		return true;		
 	}
 	
-	getInitActions() {
-		// return a list of initial actions defined as "init" property of the FrontPanel in the HWD 
+	getActions(kind) {
+		// return a list of initial (kind=="init") or final (kind=="exit") actions 
+		// defined as "init" or "exit" property of the FrontPanel in the HWD 
 		for (var id in this.elms) {
 			var elm = this.elms[id];
 			if (elm.type=="FrontPanel") {
-				if (elm.init) {
+				if (kind=="init" && elm.init) {
 					if (Array.isArray(elm.init)) return elm.init;
 					return [elm.init];
+				}
+				else if (kind=="exit" && elm.exit) {
+					if (Array.isArray(elm.exit)) return elm.exit;
+					return [elm.exit];
 				}
 				else return [];
 			}
@@ -506,62 +529,72 @@ class Hardware {
 		if		(value==2 && isPresent(but.pressed)) actions=actions.concat(but.pressed );
 
 		for (let action of actions) {
-			let elms= (Array.isArray(action.elm)) ? action.elm : [action.elm];
-			for (let elm of elms) {
-				Logger.log("Hardware     "+button.id+" "+value+", elm="+elm+", action: "+JSON.stringify(action));
-				let obj = (elm=="app") ? theHardware.appObject : theHardware.elms[elm];
-				
-				// check when condition (requires elm to have a getValue() method)
-				if (isPresent(action.when) && obj.dev.getValue()!=action.when) continue;
-				
-				// clear delay timer if requested
-				if (action.clear) {
-					if (isMissing(theTimers[elm])) theTimers[elm]={};
-					if (isPresent(theTimers[elm][action.cmd])) {
-						clearTimeout(theTimers[elm][action.cmd]);
-						delete theTimers[elm][action.cmd];					
-					}
-					continue;
+			theHardware.handleAction(button.id,action,value);
+		}
+	}
+
+	handleAction(id,action,value) {
+		// peform an action which is owned by the element with the given id;
+		// value is the current value of that element
+		// the action may be delayed
+
+		var baseElm = theHardware.elms[id];	// the element owning the action
+		// iterate over the list of elements which the action wants to manipulate
+		let elms= (Array.isArray(action.elm)) ? action.elm : [action.elm];
+		for (let elm of elms) {
+			Logger.log("Hardware     handle action of "+id+" ("+value+") for elm "+elm+": "+JSON.stringify(action));
+			let obj = (elm=="app") ? theHardware.appObject : theHardware.elms[elm];
+			
+			// check when condition (requires elm to have a getValue() method)
+			if (isPresent(action.when) && obj.dev.getValue()!=action.when) continue;
+			
+			// clear delay timer if requested
+			if (action.clear) {
+				if (isMissing(theTimers[elm])) theTimers[elm]={};
+				if (isPresent(theTimers[elm][action.cmd])) {
+					clearTimeout(theTimers[elm][action.cmd]);
+					delete theTimers[elm][action.cmd];					
 				}
-				
-				if (action.after) {
-					// isolated new timer
-					setTimeout(
-						function() {
-							if 	(elm=="app") obj[action.cmd](but,value,action);
-							else			 obj.dev[action.cmd](action.arg);	
-						}, action.after
-					);
+				continue;
+			}
+			
+			if (action.after) {
+				// isolated new timer
+				setTimeout(
+					function() {
+						if 	(elm=="app") obj[action.cmd](baseElm,value,action);
+						else			 obj.dev[action.cmd](isPresent(action.arg)?action.arg:value);	
+					}, action.after
+				);
+			}
+			else if (action.delay) {
+				// timer bound to the element
+				if (isMissing(theTimers[elm])) theTimers[elm]={};
+				if (isPresent(theTimers[elm][action.cmd])) {
+					// for "once-timers": ignore further triggering
+					if (action.once) continue;
+					// for normal timers: clear timer and create a new one with updated settings 
+					clearTimeout(theTimers[elm][action.cmd]);
+					delete theTimers[elm][action.cmd];
 				}
-				else if (action.delay) {
-					// timer bound to the element
-					if (isMissing(theTimers[elm])) theTimers[elm]={};
-					if (isPresent(theTimers[elm][action.cmd])) {
-						// for "once-timers": ignore further triggering
-						if (action.once) continue;
-						// for normal timers: clear timer and create a new one with updated settings 
-						clearTimeout(theTimers[elm][action.cmd]);
+				theTimers[elm][action.cmd] =  setTimeout(
+					function() {
+						if 	(elm=="app") obj[action.cmd](baseElm,value,action);
+						else			 obj.dev[action.cmd](isPresent(action.arg)?action.arg:value);
 						delete theTimers[elm][action.cmd];
-					}
-					theTimers[elm][action.cmd] =  setTimeout(
-						function() {
-							if 	(elm=="app") obj[action.cmd](but,value,action);
-							else			 obj.dev[action.cmd](action.arg);
-							delete theTimers[elm][action.cmd];
-						}, action.delay
-					);
-				}
+					}, action.delay
+				);
+			}
+			else {
+				// direct action, no timers involved
+				if 	(elm=="app") obj[action.cmd](baseElm,value,action);
 				else {
-					// direct action, no timers involved
-					if 	(elm=="app") obj[action.cmd](but,value,action);
-					else {
-						obj.dev[action.cmd](action.arg);
-					}
+					obj.dev[action.cmd](isPresent(action.arg)?action.arg:value);
 				}
 			}
 		}
 	}
-	
+		
 	getAllStatesJson() {
 		var states=[];
 		for (var elm of Object.values(this.elms)) {
@@ -627,12 +660,12 @@ class Hardware {
 			}
 			if 		(elm.type=="Button") 	hwElms[elmId].api = Button.getApiDescription();
 			else if (elm.type=="Display")	hwElms[elmId].api = Display.getApiDescription();
-			else if (elm.type=="TextInput") hwElms[elmId].api = TextInput.getApiDescription();
 			else if (elm.type=="LED") 		hwElms[elmId].api = LED.getApiDescription();
-			else if (elm.type=="WS2801") 	hwElms[elmId].api = WS2801.getApiDescription();
-			else if (elm.type=="Speakers") 	hwElms[elmId].api = Speakers.getApiDescription();
 			else if (elm.type=="Microphone")hwElms[elmId].api = Microphone.getApiDescription();
 			else if (elm.type=="MPU6500")	hwElms[elmId].api = MPU6500.getApiDescription();
+			else if (elm.type=="WS2801") 	hwElms[elmId].api = WS2801.getApiDescription();
+			else if (elm.type=="Speakers") 	hwElms[elmId].api = Speakers.getApiDescription();
+			else if (elm.type=="TextInput") hwElms[elmId].api = TextInput.getApiDescription();
 		}
 		for (var p=1;p<=40;p++) {
 			if (!pins[p]) pins[p]={gpio:this.pinGpios[p],signal:this.pins[p]};
@@ -660,21 +693,30 @@ class Hardware {
 	
 	apiHelp(type) {
 		var help = {
-			Syntax:		"Hardware elements are referenced by their id. Depending on the type of the element "+
-						"you can use one of the following APIs; to reference the Hardware in general, use 'id:hardware'.",
+			HWD_Syntax:	"For details on the HWD syntax see the online manual. "+
+						"Hardware elements have some common properties like elm,'type','name','title' etc. "+
+						"Depending on their 'type' they have additional properties as described in the schema below."+
+						"The HWD file is checked against the HWD_Schema upon startup of berry-frame.",
+			HWD_Schema: Hardware.schema,
+			API_Syntax: "For details on the API syntax see the online manual. "+
+						"each API call requires an element id ('elm'); "+
+						"the details depend on the 'type' of that element; "+
+						"apart from the elements defined in the HWD file you can also use some reserved words "+
+						"to reference the Hardware as a whole ('hardware'), "+
+						"the server as a whole ('server'), the application as a whole ('app') "+
+						"or the API as a whole ('api'). ",
 			Example:	"If a hardware description contains a LED named 'alarm', you could call "+
 						"yourBerryServer:port/api?id=alarm,cmd:blink,cycles:3",
-			Api:		Api.getApiDescription(),
-			Button: 	Button.getApiDescription(),
-			TextInput: 	TextInput.getApiDescription(),
-			LED:		LED.getApiDescription(),
-			Microphone:	Microphone.getApiDescription(),
-			MPU6500:	MPU6500.getApiDescription(),
-			PWDevice:	PWDevice.getApiDescription(),
-			Speakers:	Speakers.getApiDescription(),
-			WS2801:		WS2801.getApiDescription(),
-			Hardware:	Hardware.getApiDescription(),
-			App:		App.getApiDescription(),
+			Api: {
+						reserved_word_hardware:		Hardware.getApiDescription(),
+						reserved_word_server:	 	Hardware.getApiDescriptionForServer(),
+						reserved_word_app:			App.getApiDescription(),
+						reserved_word_api:			Api.getApiDescription()
+			}
+		}
+		// add api descriptions for all device types
+		for (var type in Hardware.deviceTypes) {
+			help.Api["element_of_type_"+type] = Hardware.deviceTypes[type].getApiDescription();
 		}
 		if (type) {
 			try {
@@ -690,25 +732,28 @@ class Hardware {
 	
 }
 
-// the schema for HWD element  types
-Hardware.schema= {
-	Action		: Action.schema,
-	ADS1115		: ADS1115.schema,
-	Button		: Button.schema,
-	Display		: Display.schema,
-	DS1820		: DS1820.schema,
-	FrontPanel	: FrontPanel.schema,
-	Label		: Label.schema,
-	LED			: LED.schema,
-	Microphone	: Microphone.schema,
-	MPU6500		: MPU6500.schema,
-	PWDevice	: PWDevice.schema,
-	Speakers	: Speakers.schema,
-	Task		: Task.schema,
-	TextInput	: TextInput.schema,
-	WS2801		: WS2801.schema,
-}
-	
+Hardware.deviceTypes= {
+	Action:		Action,
+	ADS1115 :	ADS1115,
+	Button:		Button,
+	Display:	Display,
+	DS1820:		DS1820,
+	FrontPanel:	FrontPanel,
+	Label:		Label,
+	LED:		LED,
+	Microphone:	Microphone,
+	MPU6500:	MPU6500,
+	PWDevice:	PWDevice,
+	Speakers:	Speakers,
+	Task:		Task,
+	TextInput:	TextInput,
+	WS2801:		WS2801
+};
+
+// the schema for HWD element types
+Hardware.schema={}
+for (var type in Hardware.deviceTypes) Hardware.schema[type] = Hardware.deviceTypes[type].schema;
+
 // merge inherited properties into each element schema
 for (var elm in Hardware.schema) {
 	var schema = Hardware.schema[elm];
@@ -733,11 +778,15 @@ for (var elm in Hardware.schema) {
 	schema.properties.style		= { type: "string", description: "CSS used to style the layout in the UI" };
 	schema.properties.emulate	= { type: "boolean",description: "true forces emulation even on the Raspi" };
 
+	// properties for devices with cable(s)
+	if (["ADS1115","Button","DS1820","LED","MPU6500","PWDevice","WS2801"].includes(elm)) {
+		schema.properties.cable = { type: "string", description: "cable colors/numbers used to connect the GPIO device" };
+	}
+
 	// properties for GPIO devices
 	if (["Button","LED","PWDevice","DS1820",].includes(elm)) {
 		schema.properties.gpio  = { type: "integer", description: "GPIO number according to BCM schema" };
 		schema.properties.color = { type: "string", description: "use color name or #RGB notation" };
-		schema.properties.cable = { type: "string", description: "cable colors/numbers used to connect the GPIO device" };
 		schema.required.push("gpio");
 	}
 
@@ -760,10 +809,37 @@ Hardware.getApiDescription = function() {
 	];
 }
 
+Hardware.getApiDescriptionForServer = function() {
+	return [
+		{	cmd:"start",
+			effect:"start a berry"
+		},
+		{	cmd:"restart",
+			effect:"stop server process and restart it (reload HWD)"
+		},
+		{	cmd:"stop",
+			effect:"stop the server process."
+		},
+		{	cmd:"update",
+			effect:"call npm update for berry-frame."
+		},
+		{	cmd:"getSetup",
+			effect:"get HWD contents"
+		},
+		{	cmd:"geState",
+			effect:"get state of all devices"
+		},
+		{	cmd:"getServers",
+			effect:"get list of known active berries"
+		},
+	];
+}
+
 
 // =========================================================================================================
 
 var theTimers = {};
 var theHardware = new Hardware();
 module.exports.theHardware = theHardware;
+module.exports.Hardware = Hardware;
 

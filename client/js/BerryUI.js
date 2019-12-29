@@ -155,7 +155,8 @@ class BerryUI {
 							$("#hw_"+hw+"_"+device.id).html("🔊 "+device.value+" 🔊");
 							var music = new Audio();
 							music.src="app/"+my.hardwares[hw].type+"/audio/"+device.value;
-							music.play();
+							// only play if audioContext has been activated
+							if (audioCtx) music.play();
 						}
 						else if (typeof device.value && device.value.morse) {
 							// produce Morse code
@@ -621,7 +622,7 @@ class BerryUI {
 
 	sendTextInput(hw,id) {
 		var value=$("#hw_"+hw+"_"+id+" textarea").val();
-		app.sendAction(hw,{elm:id,arg:value});
+		app.sendAction(hw,{elm:id,value:value});
 	}
 	
 	sendRotation(hw,id,axis,val) {
@@ -703,7 +704,7 @@ class BerryUI {
 	
 }
 
-var audioCtx;	// audio Context (Web Audio)
+var audioCtx = null;	// audio Context (Web Audio)
 
 class MorseSnd {
 
