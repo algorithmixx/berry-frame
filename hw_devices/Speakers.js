@@ -37,7 +37,7 @@ class Speakers extends Device {
 			voice: { 
 				languageCode: 'de-DE', 
 				ssmlGender: 'FEMALE', 
-				name: 'de-DE-Wavenet-A' 
+				name: 'de-DE-Wavenet-'+["A","B","C","D","E"][Math.floor(Math.random()*5)], 
 			}, 
 			audioConfig: { 
 				audioEncoding: 'MP3' 
@@ -49,6 +49,10 @@ class Speakers extends Device {
 			const writeFile = util.promisify(fs.writeFile); 
 			await writeFile(that.appType+"/audio/google-speech.mp3", response.audioContent, 'binary'); 
 		})();
+		setTimeout(function() {
+			that.play("google-speech.mp3");
+		},1500
+		);
 	}
 	
 	play(arg) {
@@ -116,7 +120,7 @@ class Speakers extends Device {
 					var args = ["./"+this.appType+"/audio/"+this.fileName];
 					if (this.devName!="") { args.unshift(this.devName); args.unshift("-a");  }
 					Logger.log("Speakers     playing (Raspi): "+this.fileName+" .. "+JSON.stringify(args));
-					childProc.spawn('mpg123', args, {stdio:"inherit"});
+					childProc.spawn('mpg123', args);
 					// we should change this only after the sub process has terminated.
 					var that=this;
 					setTimeout(function() { 
@@ -269,9 +273,10 @@ class MorseSnd {
 }
 
 Speakers.schema = {
+	description: "A pair of speakers, connected via audio jack, I2S, USB or Bluetooth",
 	properties: {
 		devName:	{ type: "string", description:"optional, a value like 'hw:1,0' to describe the audio device",}
-	}
+	},
 }
 
 module.exports = Speakers;

@@ -87,8 +87,15 @@ class Label extends Device {
 	constructor(id,name) {
 		super(id,name,[],false);
 		this.protocol="";
-	}
-	
+	}	
+}
+
+Label.schema = {
+	description: "A text label used on the virtual FrontPanel in teh WEB UI",
+}
+
+Label.getApiDescription = function() {
+	return "";
 }
 
 // =========================================================================================================
@@ -132,6 +139,7 @@ class Display extends Device {
 }
 
 Display.schema = {
+	description: "A (virtual) generic character display only usable in the WEB UI",
 	properties: {
 		color:		{ type: "string", description: "use color name or #RGB notation" },
 		xDim:		{ type: "integer", description: "number of chars horizontally"},
@@ -186,7 +194,8 @@ class TextInput extends Device {
 	
 }
 
-TextInput.schema = {		
+TextInput.schema = {
+	description: "A (virtual) rectangular text input area, usable in the WEB UI",	
 	definitions: {
 		action: 	Device.actionStrict,
 		actions: {
@@ -321,6 +330,9 @@ class Button extends InputDevice {
 }
 
 Button.schema = {
+	description: "A push button connected to a GPIO (configured as input) with configurable debouncing. "+
+				 "The following combinations of event handlers are possible: "+
+				 "(pressed),(up),(down),(downUp),(pressed+down),(pressed+up),(pressed+downUp)",
 	definitions: {
 		action: 	Device.actionStrict,
 		actions: {
@@ -508,13 +520,14 @@ class LED extends OutputDevice {
 }
 
 LED.schema = {
+	description: "A light emitting diode connected to a GPIO (configured as output)",
 }
 
 LED.getApiDescription = function () {	
 	return [
 		{	cmd:"blink",
 			args:[
-				{name:"delay",		meaning:"a number in msecs between on and off"},
+				{name:"interval",	meaning:"a number in msecs between two ON states"},
 				{name:"ratio",		meaning:"a number between 0..1 to describe the proportion of on-time:off-time"},
 				{name:"cycles",		meaning:"the number of full cycles to perform"},
 				{name:"duration",	meaning:"the time span for blinking; excess cycles will be ignored"},

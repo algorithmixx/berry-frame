@@ -86,6 +86,7 @@ class MPU6500 extends Device {
 }
 
 MPU6500.schema = {
+	description: "A motion and acceleration sensor using I2C protocol (0x68)",
 	properties: {
 		image3d:	{ type: "string", description: "e.g. xyz.glb, file must be in client/img directory"	},
 		orientation:{ 

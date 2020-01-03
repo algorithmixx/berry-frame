@@ -11,8 +11,6 @@ const theHardware	= require("../hw_control/Hardware.js").theHardware;	// singlet
 const Hardware		= require("../hw_control/Hardware.js").Hardware;
 const SystemInfo	= require("systeminformation");
 
-console.log("......"+JSON.stringify(Hardware.deviceTypes));
-
 // =========================================================================================================
 
 class BerryFrame {
@@ -29,7 +27,7 @@ class BerryFrame {
 		// get current script name
 
 		this.scriptName	 = process.argv[1].replace(/.*[/\\]/,'').replace(/[.]js$/,'');
-		this.versionId	 = "1.2.11";
+		this.versionId	 = "1.2.13";
 		
 		// find known Berry types and their default properties (description, port, rev, ..)
 		this.berryTypes = this.findBerryTypes();
@@ -100,17 +98,15 @@ class BerryFrame {
 					.replace(/&[a-zA-z]{2,5};/g,"")
 					+"\n"
 			;
-		}
-		var deviceTypes = JSON.stringify(Hardware.deviceTypes);
-		
+		}		
 		var getopt = 
 			require('node-getopt').create([
 				['h' , 'help',					'display this help'														],
 				['v' , 'version',				'display version ID'													],
-				['a' , 'api',					'display syntax help on the API of all supported hardware element types'],
+				['a' , 'api=all',				'display help for given device type or for all types and for the current berry'	],
 
 				['i' , 'install=',				'install a berry from the berry-shop, expects the name as an argument'	],
-				['z' , 'zip',					'zip the current berryType into ./zip/berryType.zip'						],
+				['z' , 'zip',					'zip the current berryType (or "all") into ./zip/berryType.zip,'		],
 				['b' , 'browse',				'open site in local default browser after server has started'			],
 
 				['n' , 'name=',					'server name for identification, default: berryType'					],
@@ -128,7 +124,8 @@ class BerryFrame {
 					+'Purpose:\n'
 					+'  Start a Raspberry Pi application (a "berry") with attached devices and create a socket server\n'
 					+'  which allows to control the berry via a generic browser interface.\n'
-					+'  If this program is called under Windows (or with option "-e") it will emulate the hardware.\n'
+					+'  If this program is called under Windows (or with option "-e") it will emulate\n'
+					+'  hardware devices which would be connected to a Raspi via GPIO, 1-Wire, SPI or I2S.\n'
 					+'  The program requires as an argument the name of a hardware configuration file.\n'
 					+'  The special built-in name "Master" will create a registration service for all other Berries.\n'
 					+'\n'
@@ -141,7 +138,7 @@ class BerryFrame {
 					+'\n'
 					+'More Berries:\n'+'    see https://followthescore.org/berry/index.html\n'
 					+'\n'
-					+'Available Device Types:\n'+deviceTypes
+					+'Available Device Types:\n'+theHardware.getDeviceTypes()
 					+'\n'
 					+'Notes:\n'
 					+'  The program will run forever, acting as a server for http requests and socket connections.\n'
@@ -161,7 +158,7 @@ class BerryFrame {
 
 		// show API help and exit
 		if (isPresent(getopt.options["a"])) { 
-			Logger.info(JSON.stringify(theHardware.apiHelp(getopt.argv[0]),null,4));
+			Logger.info(JSON.stringify(theHardware.apiHelp(getopt.options["a"],getopt.argv[0]),null,4));
 			return null;
 		}
 		
@@ -237,6 +234,15 @@ class BerryFrame {
 	
 	load() {
 		// create devices and start processing
+
+/*
+for (var method of Object.getOwnPropertyNames( BerryFrame.prototype )) {
+	console.log(method);
+}
+return;
+*/
+
+
 
 		if (this.cmdLine==null) {
 			return;

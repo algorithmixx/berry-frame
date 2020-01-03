@@ -100,21 +100,19 @@ div.TextInput {
 div.WS2801 {
 	position:			absolute;
 	display:			inline-block;
-	border:				solid 2px darkgray;
-	vertical-align:		middle;	
+	vertical-align:		middle;
+	text-align:			center;			
 }
 
 div.WS2801_led {
-	vertical-align:		middle;
-	display:			inline-block;
+	position:			absolute;
 	border:				solid 1px gray;
 	background-color:	black;
 	color:				white;
 	border-radius:		16px;
 	font-family:		monospace;
-	padding:			3px;
 	width:				20px;
-	margin-left:		1px;
+	height:				20px;
 	text-align: 		center;
 }
 

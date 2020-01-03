@@ -460,8 +460,8 @@ class BerryUI {
 					var value = elm.options[0].value;
 					if (!value) value = elm.options[0]; 
 					// Action without alternatives
-					it=	"<button id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style='"
-						+elm.style+"' onclick='app.sendAction("+hw+",{elm:\""+elm.id+"\",value:\""+value+"\"});'>"+value+"</button>";
+					it=	"<button id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style=\""
+						+elm.style+"\" onclick='app.sendAction("+hw+",{elm:\""+elm.id+"\",value:\""+value+"\"});'>"+value+"</button>";
 				}
 				else {
 					// Action with multiple string values or with multiple option objects (value, elm, cmd, arg)
@@ -470,8 +470,8 @@ class BerryUI {
 						if (typeof opt == "string") opts+= "<option>"+opt+"</option>";
 						else  opts+="<option>"+opt.value+"</option>";
 					}
-					it=	"<select id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style='"
-						+elm.style+"'"+" onmouseup='var open=$(this).data(\"isopen\"); if(open) { app.sendAction("
+					it=	"<select id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style=\""
+						+elm.style+"\""+" onmouseup='var open=$(this).data(\"isopen\"); if(open) { app.sendAction("
 						+hw+",{elm:\""+elm.id+"\",value:$(this).val()})}; $(this).data(\"isopen\",!open);'"
 						+">"+opts+"</select>"
 					;
@@ -479,7 +479,7 @@ class BerryUI {
 			}
 
 			else if (elm.type=="ADS1115") {
-				it="	<div id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||elm.name)+"' class='"+elm.type+"' style='"+elm.style+"'>?</div>";
+				it="	<div id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||elm.name)+"' class='"+elm.type+"' style=\""+elm.style+"\">?</div>";
 			}
 
 			else if (elm.type=="Button") {
@@ -489,16 +489,16 @@ class BerryUI {
 				if (elm.pressed				) handles += "' onclick='app.sendAction("+hw+",{elm:\""+elm.id+"\",state:\"pressed\"});'";
 				if (elm.down || elm.downUp	) handles += " onmousedown='app.sendAction("+hw+",{elm:\""+elm.id+"\",state:\"down\"});'";
 				if (elm.up || elm.downUp	) handles += " onmouseup='app.sendAction("+hw+",{elm:\""+elm.id+"\",state:\"up\"});'";
-				it=	"<button id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style='"
-					+elm.style+"'"+handles+">"+elm.name+"</button>";
+				it=	"<button id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style=\""
+					+elm.style+"\""+handles+">"+elm.name+"</button>";
 			}
 
 			else if (elm.type=="Display") {
-				it="<div id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style='"+elm.style+"'></div>";
+				it="<div id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style=\""+elm.style+"\"></div>";
 			}
 
 			else if (elm.type=="DS1820") {
-				it="	<div id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||elm.name)+"' class='"+elm.type+"' style='"+elm.style+"'>?</div>";
+				it="	<div id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||elm.name)+"' class='"+elm.type+"' style=\""+elm.style+"\">?</div>";
 			}
 
 			else if (elm.type=="FrontPanel") {
@@ -508,20 +508,20 @@ class BerryUI {
 			}
 
 			else if (elm.type=="Label") {
-				it="<div id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style='"+elm.style+"'>"+elm.name+"</div>";
+				it="<div id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style=\""+elm.style+"\">"+elm.name+"</div>";
 			}
 
 			else if (elm.type=="LED") {
-				it="<div id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style='"+elm.style+"'><div style='margin-top:5px;padding-left:5px;padding-right:5px;'>"+elm.name+"</div></div>";
+				it="<div id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style=\""+elm.style+"\"><div style='margin-top:5px;padding-left:5px;padding-right:5px;'>"+elm.name+"</div></div>";
 			}
 
 			else if (elm.type=="Microphone") {
-				it="	<div id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style='"+elm.style+"'>🎤"+elm.name+"</div>";
+				it="	<div id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style=\""+elm.style+"\">🎤"+elm.name+"</div>";
 			}
 
 			else if (elm.type=="MPU6500") {
 				elm.rot=[0,0,0];
-				it="<div id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style='"+elm.style+"'>"+`
+				it="<div id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style=\""+elm.style+"\">"+`
 					<div style="display:inline-block;margin-top:5px;vertical-align:top;">
 						<div>
 							<label>X</label>
@@ -551,7 +551,7 @@ class BerryUI {
 				if (!elm.duty) elm.duty=[0,1];
 				if (!elm.range) elm.range=[0,100];
 				var val=""+elm.duty[0]+"+"+(elm.duty[1]-elm.duty[0])+"*(this.value-"+elm.range[0]+")/"+(elm.range[1]-elm.range[0]);
-				it= "<div class='slidecontainer' style='"+elm.style+"' title='"+(elm.title||"")+"'>"
+				it= "<div class='slidecontainer' style=\""+elm.style+"\" title='"+(elm.title||"")+"'>"
 					+"<input type='range' min='"+elm.range[0]+"' max='"+elm.range[1]+"' class='slider' id='hw_"+hw+"_"+elm.id
 					+"' oninput='app.sendAction("+hw+",{elm:\""+elm.id+"\",cmd:\"setDutyCycle\",\"value\":"+val+"});'/>"
 					+"<span id='hw_"+hw+"_v_"+elm.id+"' style='float:right'>50</span>"
@@ -560,7 +560,7 @@ class BerryUI {
 			}
 
 			else if (elm.type=="Speakers") {
-				it="	<div id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style='"+elm.style+"'>"+elm.name+"🔊</div>";
+				it="	<div id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style=\""+elm.style+"\">"+elm.name+"🔊</div>";
 			}		
 
 			else if (elm.type=="Task") {
@@ -569,37 +569,54 @@ class BerryUI {
 			}		
 
 			else if (elm.type=="TextInput") {
-				it="<div id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style='"+elm.style+"'>"
+				it="<div id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style=\""+elm.style+"\">"
 					+"<textarea rows='"+elm.rows+"' cols='"+elm.cols+"'></textarea><button onclick='app.sendTextInput("+hw+",\""+elm.id+"\");' style='vertical-align:top'>&#9166;</button></div>";
 			}
 
 			else if (elm.type=="WS2801") {
-				it ="<div id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||elm.name)+"' class='"+elm.type+"' style='"+elm.style+"'>";
+				it ="<div id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||elm.name)+"' class='"+elm.type+"' style=\""+elm.style+"\">";
 				it+="	<div style='position:relative'>";
-				it+="		<div style='position:absolute;left:-90px;top:20px;background:#e7e7e7;border:dashed 1px black;width:88px;height:30px;'></div>";
-				it+="		<div style='position:absolute;left:40px;display:inline-block;background:#e7e7e7;border:dashed 1px lightgray;width:"+(elm.numLEDs/2*31+50)+"'>";
-				var mid=Math.floor(elm.numLEDs/2);
-				for (var l=0,nr=elm.numLEDs-1,ll=elm.numLEDs-1;l<elm.numLEDs;l++) {
-					if (l<mid) {
-						it+="<div class='WS2801_led' title='"+nr+"' id='s_"+hw+"_"+nr+"'>&nbsp;</div>";
-						nr--;
-					}
-					else if (l==mid) {
-						it+="<br/>";
-						if (elm.numLEDs%2) it+="<div class='WS2801_led' id='s_"+hw+"_"+nr+"' title='"+nr+"' style='margin-left:"+((l+1)*27)+"px'>&nbsp;</div><br/>";
-						else { 
-							l--;
-							mid=0;
-						}
-						nr=0;
-					}
-					else {
-						it+="<div class='WS2801_led' title='"+nr+"' id='s_"+hw+"_"+nr+"'>&nbsp;</div>";
-						ll--;
-						nr++;
+				// it+="		<div style='position:absolute;left:-90px;top:20px;background:#e7e7e7;border:dashed 1px black;width:88px;height:30px;'></div>";
+				// it+="		<div style='position:absolute;left:40px;display:inline-block;background:#e7e7e7;border:dashed 1px lightgray;width:"+(elm.numLEDs/2*31+50)+"'>";
+							
+				var top=0, sx = elm.shape.spaceX, sy = elm.shape.spaceY, sy2 = Math.ceil(sy/2), dx = elm.shape.dimX, dy=elm.shape.dimY;
+				
+				if (elm.shape.layout=="rect") {
+					// a rectangular frame
+					var left= dy>0 ? sx : 0;
+					var lim = elm.shape.dimX-1;
+					for(var l=0;l<elm.numLEDs;l++) {
+						it+="<div class='WS2801_led' title='"+(l+1)+"' id='s_"+hw+"_"+l+"' style='left:"+left+"px;top:"+top+"px;'>&nbsp;</div>";
+						if 		(l < lim)			left+=sx;
+						else if (l== lim)			{if(dy>0) {left+=sx; top+=sy2;} else top+=sy;}
+						else if (l < lim 	+ dy)	top += sy;
+						else if (l== lim 	+ dy)	{left-=sx; top+=sy2;}
+						else if (l < 2*lim 	+ dy+1)	left-=sx;
+						else if (l== 2*lim 	+ dy+1)	{left-=sx; top-=sy2;}
+						else 						top -=sy;
 					}
 				}
-				it+="</div></div></div>";
+				else if (elm.shape.layout=="area") {
+					var l=0,left=0,top=0;
+					for(var y=0;y<dy;y++) {
+						for(var x=0;x<dx;x++) {
+							it+="<div class='WS2801_led' title='"+(l+1)+"' id='s_"+hw+"_"+l+"' style='left:"+left+"px;top:"+top+"px;'>&nbsp;</div>";
+							left+=sx;
+							l++;
+						}
+						left=0;
+						top+=sy;
+					}
+				}
+				else if (elm.shape.layout=="oval") {
+					var left=0,top=0;
+					for(var l=0;l<elm.numLEDs;l++) {
+						var left = Math.round(sx/2 + Math.sin(l*2*Math.PI/elm.numLEDs) * sx);
+						var top  = Math.round(sy/2 - Math.cos(l*2*Math.PI/elm.numLEDs) * sy);
+						it+="<div class='WS2801_led' title='"+(l+1)+"' id='s_"+hw+"_"+l+"' style='left:"+left+"px;top:"+top+"px;'>&nbsp;</div>";
+					}
+				}
+				it+="</div></div>";
 			}
 
 			else {

@@ -143,6 +143,7 @@ class PWDevice extends Device {
 }
 
 PWDevice.schema = {
+	description: "A pulse width modulated device, based on HW-controlled GPIO or on soft-GPIO",
 	properties: {
 		range:		{ type: "array", items: [ {type: "number"}, {type: "number"} ], default:[0,1] },
 		duty:		{ type: "array", items: [ {type: "number"}, {type: "number"} ], default:0 },

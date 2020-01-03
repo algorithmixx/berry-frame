@@ -16,7 +16,7 @@ class WS2801 extends Device {
 	// note that communication with the strip hardware via SPI is asynchronous
 	// This means that some methods have an argument which is a callback function
 
-	constructor(id,name,numLEDs,emulate) {
+	constructor(id, name, numLEDs, shape, emulate) {
 
 		super(id,name,[],emulate);
 		
@@ -30,6 +30,7 @@ class WS2801 extends Device {
 		
 		this.protocol		= "SPI";
 		this.numLEDs 		= numLEDs;
+		this.shape	 		= shape;
 		this.spiDevice 		= null;
 		this.inverted 		= false;
 		this.reversed 		= false;	
@@ -315,11 +316,19 @@ class WS2801 extends Device {
 }
 
 WS2801.schema = {
+	description: "A LED strip with individually controllable RGB triples, uses SPI protocol",
 	properties: {
 		spi:		{ type: "string", description: "0.0, 0.1, 1.0 or 1.1" 	},
 		speed:		{ type: "integer", description: "Baudrate, 1000..100000 eg."},
 		reverse: 	{ type: "integer", minimum:0, maximum:1, default:0 		},
 		numLEDs:	{ type: "integer", minimum:1							},
+		shape:	{
+			layout: { type: "string", description: "only 'rect,area,oval' are supported so far",	},
+			dimX:	{ type: "integer", description: "width of a LED triple",			},
+			dimY:	{ type: "integer", description: "height of a LED triple",			},
+			spaceX:	{ type: "integer", description: "horizontal spacing",				},
+			spaceY:	{ type: "integer", description: "vertical spacing",					},
+		},
 	},
 	required:	["spi","numLEDs"],
 }

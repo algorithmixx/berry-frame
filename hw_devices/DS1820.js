@@ -75,6 +75,7 @@ class DS1820 extends Device {
 }
 
 DS1820.schema = {
+	description: "A temperature sensor using the 1-Wire protocol",
 	definitions: {
 		action: 	Device.action,	// allow additional properties like interval, value
 		actions: {

@@ -11,15 +11,10 @@ mkdir -p log log/old
 rm -f log/old/* > /dev/null
 mv log/*.* log/old > /dev/null
 
-# start the monitoring script
-echo starting monitor ..
-./monitor 1>log/monitor.log 2>log/monitor.err &
-chmod 666 log/monitor.err log/monitor.log
-
 # start Master
-echo starting Master ..
-./berry Master  1>log/Master.log 2>log/Master.err &
-chown pi:pi log/Master.log log/Master.err
+# echo starting Master ..
+# ./berry Master  1>log/Master.log 2>log/Master.err &
+# chown pi:pi log/Master.log log/Master.err
 
 for berry in $*
 do

@@ -7,7 +7,7 @@
 	<script src="lib/jquery.min.js"></script>
 	<script src="lib/commonmark.min.js"></script>
 	<script src="js/Utils.js"></script>
-	<title>Berry Manual</title>
+	<title>berry-frame manual</title>
 </head>
 <body><div class="MD">
 	<img src="http:img/berries.jpg" style="float:right;width:400px;margin-left:10px"/>
@@ -21,8 +21,7 @@
 
 ## INTRODUCTION
 
-	__berry-frame__ is the name of a framework written in _Javascript_. 
-	The applications you build with __berry-frame__ (and _Javascript_) are called _berries_.
+	The applications you build with __berry-frame__ are called _berries_.
 	
 	If you develop more than one application for small embedded computers you will
 	quickly notice that more than 70% of your program code does not really deal
@@ -32,13 +31,18 @@
 	real application logic.
 	
 	__berry-frame__ is not a "graphical tool for drawing your programming logic".
-	It rather believes in the power of formal, structured declarations. 
-	Therefore it demands you to describe the hardware configuration of your 
-	peripherals in a so-called __hardware definition file (HWD)__ with a simple 
-	grammar based on JSON syntax. The HWD notation also establishes some standard 
+	It is based on a formal, structured description of the hardware components and
+	their basic interactions. __berry-frame__ expects a so-called 
+	__hardware definition file (HWD)__ with a simple grammar based on JSON syntax.
+	The HWD notation also establishes some standard 
 	rules for visual representation of hardware elements in the browser UI 
 	and for the general flow of information between UI elements and 
 	hardware devices connected to the Raspi´s GPIO ports.
+
+	__berry-frame__ is written in _Javascript_. This means that we can use the same
+	language on the server (running under NodeJS) and on the client (running in the browser).
+	__berry-frame__ comes with a light-weight embedded web server. So there is no 
+	need to install/configure Apache on your Raspi.
 
 	<div class="hilight">
 	As soon as things get more complex, you will have to provide some Javascript
@@ -147,7 +151,7 @@
 	__berry-frame__ is written in Javascript (ES6 syntax); the server part runs on Node.js, 
 	the client part runs in the browser.
 
-	__berry-frame__ requires no installation (apart from Node.js and some public modules).
+	__berry-frame__ requires no installation (apart from Node.js and the required modules).
 
 	__berry-frame__ is reasonably fast on modern Raspi hardware. It can even be used on older models
 	with acceptable performance but you will observe _very long loading times_ (~30 sec.) there, 
@@ -208,6 +212,7 @@
 	As said before, __berry-frame__ supports emulation of Raspi hardware elements under Windows.
 	So, if you are extending the framework you will also have to provide (minimalistic) code
 	to do some sort of emulation (returning random values or whatsoever).
+	
 	For a new type of hardware element, say: a motor, you will also have to provide
 	a reasonable optical client representation with HTML/CSS/JS.
 	
@@ -238,7 +243,7 @@
   -----------------------------------------------------------------------------------------
    ```
 
-	More details can be seen in the following diagram:
+	More details are shown in the following diagram:
 	
 	<img src="http:img/architecture.jpg" style="width:700px;margin-left:10px"/>
 
@@ -280,8 +285,8 @@
 	  pieces of code to Hardware.js. in layer HC to enable the new types.
 	* __WS - the web server__ - will in many cases have to be extended by a class which contains
 	  the specific logic of your application. That class should be derived from "App", 
-	  which is provided as a parent class by the __berry-frame__ framework. This class does Note
-	  sit in the framwork directory tree. It is rather a direct part of your _berry_.
+	  which is provided as a parent class by the __berry-frame__ framework. This class does not
+	  sit in the framework directory tree. It is rather a direct part of your _berry_.
 	* __WC - the web client__ - could be extended if you feel that the standard way to display
       the hardware peripherals of your _berry_ is not adequate for your needs. We recommend to 
 	  separate your code from the generic web client, but right now there are no built-in mechanisms
@@ -309,29 +314,39 @@
 	
 ## <a name="c5"/> 5) SUPPORTED DEVICE TYPES ( layer: BHA / AHA )
 
-	* _Action_ : Actions are virtual (non-physical) devices which appear ONLY in the web UI;
-	  they can be used to assist in testing/debugging.
-	* _Button_: A push button or a switch button with configurable debouncing
-	* _Display_: A generic character display (EMULATION ONLY)
-	* _DS1820_: A One Wire thermo sensor
-	* _FrontPanel_: A built-in device type which corresponds to the physical hardware housing
-	  It is represented in the client UI as a rectangular screen area which is the base for the
-      relative positioning of all other peripheral elements (device representations)
-	* _Label_ : A fixed element on the front panel of a _berry_
-	* _LED_: A light emitting diode with configurable color and a flexible blinking method
-	* _Microphone_: A sound recording equipment which can be accessed through standard drivers
-	* _MPU6500_: A very common motion sensor which is connected through I²C.
-	* _PWDevice_: A device that can take hardware controlled pulse width signals (like a servo motor)
-	* _Speakers_: A sound producing equipment which can be accessed through standard drivers
-	* _TextInput_: A text input area (a virtual device, only available in the browser UI)
-	* _WS2801_: An SPI controlled strip of RGB LEDs where each LED can be individually controlled
+	A list of supported device types is shown on the command line if you simply call ``./berry``
+	from the command line.
+	Depending on the current version of __berry-frame__ it will show something like
+````
+    Action          A selection of options which represent commands (shown as a combo-box in the WEB UI)
+    ADS1115         A four channel analog-to-digital converter based on I2C protocol (0x48)
+    Button          A push button connected to a GPIO (configured as input) with configurable debouncing
+    Display         A (virtual) generic character display only usable in the WEB UI
+    DS1820          A temperature sensor using the 1-Wire protocol
+    FrontPanel      A virtual representation of the physical housing, used in the WEB UI for relative positioning of all UI widgets
+    Label           A text label used on the virtual FrontPanel in teh WEB UI
+    LED             A light emitting diode connected to a GPIO (configured as output)
+    Microphone      A microphone (mono)
+    MPU6500         A motion and acceleration sensor using I2C protocol (0x68)
+    PWDevice        A pulse width modulated device, based on HW-controlled GPIO or on soft-GPIO
+    Speakers        A pair of speakers, connected via audio jack, I2S, USB or Bluetooth
+    Task            A background task which triggers actions in a certain interval
+    TextInput       A (virtual) rectangular text input area, usable in the WEB UI
+    WS2801          A LED strip with individually controllable RGB triples, uses SPI protocol
+````
 	
-	Please notice: the speakers use both hardware PWM signals of the Raspi. So if you want to 
-	play audio files you cannot use the _PWDevice_ in combination with the (one or two) 
-	hardware-controlled GPIO port(s).
+	Please notice: If you connect speakers via I2S the hardware controlled variant of ``PWDevice``
+	cannot be used because I2S uses both hardware PWM signals of the Raspi.
 	
-	Device types missing: step motor (possibly connected via GPIO), more 1-wire sensors,
-	force sensors, AD-converters, DA-converters, relais, .. and many more ..
+	It is planned to add more device types, like
+````
+	step motor
+	more 1-wire sensors
+	force sensors
+	DA-converters
+	relais
+	...
+````
 
 
 ## <a name="c6"/> 6) HARDWARE CONFIGURATION ( layer: BHC / AHC )
@@ -350,13 +365,13 @@
 	Apart from technical details like GPIO numbers, debounce times etc. the HWD also contains layout
 	declarations for the representation of each element on the browser screen ("virtual front panel").
 	
-	Elements have a unique identification (property:id); there are some *reserved ids:*
+	Elements have a unique identification (property:id); in addition there are some *built-in reserved ids:*
 	- ``server`` : the built-in web-server
 	- ``hardware`` : the hardware as a whole
 	- ``app`` : the application as a whole
-	- ``api`` : the application programming interface
+	- ``api`` : the application programming interface as a whole
 
-	HWD files allow to define simple connections between a Button and other elements like LEDs.
+	HWD files allow to define simple connections between, say, a Button and other elements like LEDs.
 	Therefore in some cases you could even define a Berry application without a specific 
 	application server class.
 
@@ -365,15 +380,15 @@
 	
 ### 6.1) Extended JSON Syntax
 
-	HWD uses JSON syntax. In addition the following rules apply:
-	* both types of comments (double // and /* .. */) are allowed
-	* attribute names must not be enclosed in quotes;
-	this means that you write something like {name:"foo"} and not {"name":"foo"}
-	* superfluous commas are allowed and will be ignored
-	* strings can be broken into multiple lines by simply writing them line by line,
-	each part enclosed with quotes
-	* You must not use the percent sign (%); use "&amp;percnt;" instead
+	HWD uses JSON syntax.
 
+	In addition the following rules apply:
+
+	* both types of comments (double // and /* .. */) are allowed
+	* attribute names must not be enclosed in quotes; this means that you write something like {name:"foo"} and not {"name":"foo"}
+	* superfluous commas are allowed and will be ignored
+	* strings can be broken into multiple lines by simply writing them line by line, each part enclosed with quotes
+	* You must not use the percent sign (%); use "&amp;percnt;" instead
 
 ### 6.2) Basic structure
 		
@@ -393,8 +408,7 @@
 }
 ```
 		
-	Elements are _physical_ devices of the application which are represented in the web client.
-	The special elements "Action" and "Manual" are _virtual_ devices, which only exists in the web client.
+	Elements are (mostly) _physical_ devices of the application which are represented in the web client.
 
 	A hardware definition must contain exactly one element of type "FrontPanel". All other
 	elements are (absolutely) positioned relative to this element.
@@ -403,7 +417,7 @@
 	"style" attribute.
 
 
-### 6.3) ELEMENT definition (GENERAL attributes):
+### 6.3) ELEMENT definitions:
 ```
 {
     type:       "a valid element type like "+
@@ -422,114 +436,27 @@
 }
 ```
 
+	By typing ``./berry -a all`` you will get a lengthy JSON text which shows the HWD schema 
+	and the API for all elements (device types).
 
-### 6.4) ELEMENT definitions (SPECIFIC attributes):
+	By typing ``./berry -a LED`` you will get the same JSON text but only for the given
+	device type.
 
-```
-Action: {
-    target:    "the id of the element to which the Action refers",
+	Some device types allow to define event handlers, e.g. Button allows handlers
+	for the events ``down, up, downup, pressed``. Actions defined by an event handler
+	have the following structure:
+
+````
+    elm:       "the id of the element to which the action refers",
     cmd:       "the command which shall be invoked on the element",
-    prog:      "a parameter to be sent together with the invocation",
-    arg:       "a string containing JSON elements and their values"
-               "the string will be split into pieces along comma"
-               "the resulting arguments will be used in the invocation"
-}
-
-ADS1115: {
-	channel:	analog input channel (0..3),
-	gain:		"a floating point number between 0 and 16",
-}
-
-Button: {
-    debounce:    a time in msec to avoid unwanted double triggers,
-    pressed: {
-        elm:     "elm" OR [ "elm1","elm2", .. ],
-        cmd:     "a command, must be a method supported by 'elm' },
-    },
-    down: {
-        ..       (same attributes as "pressed")
-    },
-    up: {
-        ..       (same attributes as "pressed")
-    },
-    downUp: {
-        ..       (same attributes as "pressed")
-    }
-}
-         The events "pressed","up" and "down" can be linked to one or more (other) elements;
-         "downUp" applies to "down" AND "up" and should be used to avoid redundance.
-         A given Button can only use one of the following combinations:
-         (pressed),(up),(down),(downUp),(pressed+down),(pressed+up),(pressed+downUp)
-         The "cmd" will be executed when the event fires (i.e. the user clicks/presses/releases the button)
-
-Display: {
-    xDim:      width in pixels,
-    yDim:      height in pixels,
-}
-
-DS1820; {
-    addresse:    "the id of the sensor",	// can be found looking at /sys/bus/w1/devices/*
-    monitor: {
-        interval: monitoring interval in msecs,
-        display:  "id of a display to receive each new value",
-    },
-    below: {
-        value:    the lower threshold (°C),
-        elm:      "id of the element to be targetes",
-        cmd:      "command to be sent to thet targeted element",
-    },
-    between: {
-        value:    range of two values (°C^),
-        elm:      "id of the element to be targetes",
-        cmd:      "command to be sent to thet targeted element",
-    },
-    above: {
-        value:    upper threshold (°C),
-        elm:      "id of the element to be targetes",
-        cmd:      "command to be sent to thet targeted element",
-    },
-}
-
-FrontPanel: {}
-
-Label: {}
-
-LED: {
-    color:       "the (CSS) color of the LED when lighted",
-    interval:    the duration (msec) of a on/off cycle in a "blink" command, default: 250,
-    ratio:       a percentage of ON time during blinking, default: 50,
-    cycles:      number of repetitions, default: 3
-    duration:    defines a limit (msec) for the blinking process (excesss cycles being ignored)
-}
-
-Microphone: {}
-
-MPU6500: {
-	orientation: "array in degrees [x,y,z]"
-
-}
-
-PWDevice: {
-    drives:      "the id of another element which is connected to the PWDevice, e.g. a LED",
-}
-
-Speakers: {
-	devName:	"optional, a string like 'hw:1,0' describing the audio device",
-}
-
-TextInput: {
-    cols:      the number of columns,
-    rows:      the number of rows,
-}
-
-WS2801: {
-   numLEDs:    the number of LEDs on the strip,
-   spi:        "the SPI device to use, 0.0, 0.1, 1.0 or 1.1",
-   speed:      the frequency (Hertz) of data transfer, rounded to a power of 2, default = 2e6,
-   reverse:    can be 0 or 1.0, reverses the sequence of the LEDs,
-}
-
-```
+    arg:       "an object to be passed as an argument to the command",
+	when:      "a condition to allow/prevent execution",
+	           "the given  value must match the result of the getValue() method of elm to allow execution",
+    after:     "start execution after the given time in msec (isolated timer)",
+    delay:     "start execution after the given delay on msec (timer linked to the element, may be updated while running)",
+	once:      "true/false: do /or do not update the delay timer linked to the element while the timer is running"
+    clear:     "true: delete the timer linked to the element",
+````
 
 
 ## <a name="c7"/> 7) SERVER, MASTER and MONITOR ( layer: BS / AS )
@@ -806,8 +733,10 @@ WS2801: {
 
       As usual you start on a Windows PC to prepare the SD card:
 	
-	* download and install __Etcher__, __putty__ and __filezilla__ (or another ftp utility)
-	* download __Raspbian lite__ from https://www.raspberrypi.org/downloads/raspbian/
+	* download and install <a target="download" href="https://www.balena.io/etcher/">__Etcher__</a>, 
+	<a target="download" href="https://www.chiark.greenend.org.uk/~sgtatham/putty/latest.html">__putty__</a> and 
+	<a target="download" href="http://www.filezilla.de/download.htm">__filezilla__</a> (or another ftp utility)
+	* download __Raspbian lite__ from <a target="download" href="https://www.raspberrypi.org/downloads/raspbian/">__raspberrypi.org__</a>
 	* unzip the download
 	* use Etcher to copy the unzipped img file to the SD card
 	* release the SD card drive, remove the card and re-insert it; you should then see a drive called ``boot``
@@ -834,10 +763,9 @@ WS2801: {
 	* Use the symbolic name RASPBERRYPI or search in your network for that name and note the IP
 	  that was assigned to it by your network infrastructur.
 	* Login with ``putty`` as user "pi" with password "raspberry".
-	* configure localization, hardware interfaces, network name and other items
-	
-	* you may also want to change the password
-	* also select "expand filesystem" from the "advanced options"
+	* configure __host name__, __localization/time zone__, __hardware interfaces__, and other items
+	* you may also want to change the __password__
+	* also select __"expand filesystem"__ from the "advanced options"
 	* close the config tool, reboot the Raspi and reconnect via putty:
 ````
 	sudo raspi-config
@@ -916,7 +844,7 @@ WS2801: {
 	For i²c bus testing we should install i2c-tools.
 	Allow _berries_ to shutdown the Raspi.
 ````
-	sudo apt-get -y install libasound2-dev alsa-tools bluealsa omxplayer mpg123 mpgpython-smbus i2c-tools
+	sudo apt-get -y install libasound2-dev alsa-tools bluealsa omxplayer mpg123 python-smbus i2c-tools
 	sudo chmod +s /sbin/shutdown
 	
 ````

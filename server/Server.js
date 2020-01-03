@@ -393,7 +393,14 @@ class Server {
 					if (!opt.arg) optArg = arg.value;
 					break;
 				}
-				if (optElm=="app") return theHardware.appObject[optCmd](null,optArg);
+				if (optElm=="app") {
+					if (theHardware.appObject && theHardware.appObject[optCmd]) return theHardware.appObject[optCmd](null,optArg);
+					else {
+						var msg="Server: application class has no method '"+optCmd+"'";
+						Logger.error(msg);
+						return msg;
+					}
+				}
 				else return theHardware.elms[optElm].dev[optCmd](optArg);
 			}
 			
@@ -515,11 +522,19 @@ class Server {
 					if (socket) this.sendError(socket,'WS2801 '+action.elm+' cannot play "'+arg.prog);
 					return {type:"WS2801",elm:action.elm,state:"cannot play",prog:arg.prog};
 				}
-				if (this.can(socket,"WS2801",action.elm,["fillColor"],action.cmd)=="ok") {
+				else if (this.can(socket,"WS2801",action.elm,["fillColor"],action.cmd)=="ok") {
 					target.dev[action.cmd](arg,target.dev.onChanged);
 					return {type:"WS2801",elm:action.elm,color:arg};
 				}
+				else if (action.cmd=="set") {
+					for (var prop in arg) {
+						target[prop]=arg[prop];
+						target.dev[prop]=arg[prop];
+					}
+					return {type:"WS2801",elm:action.elm,arg:target};
+				}
 				else {
+					console.log(action.cmd,"....");
 					var msg="Server: unknown action for WS2801: "+JSON.stringify(action);
 					Logger.error(msg);
 					return msg;

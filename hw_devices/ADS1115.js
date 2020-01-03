@@ -187,6 +187,7 @@ class ADS1115 extends Device {
 	}	
 }
 ADS1115.schema = {
+	description: "A four channel analog-to-digital converter based on I2C protocol (0x48)",
 	properties: {
 		channel:	{ type: "integer",
 					  description: "channel vs GND: 0,1,2,3 or differential input: 4:=ch 0-1, 5:=ch 0-3, 6:ch 1-3, 7:=ch 2-3", default:0 },

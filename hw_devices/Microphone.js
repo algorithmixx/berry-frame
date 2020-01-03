@@ -32,6 +32,7 @@ class Microphone extends Device {
 }
 
 Microphone.schema = {
+	description: "A microphone (mono)",
 }
 
 Microphone.getApiDescription = function() {

@@ -10,6 +10,7 @@ const Button	= require("../hw_devices/Device.js").Button;
 const Device	= require("../hw_devices/Device.js").Device;
 const Display	= require("../hw_devices/Device.js").Display;
 const DS1820	= require("../hw_devices/DS1820.js").DS1820;
+const Label		= require("../hw_devices/Device.js").Label;
 const LED 		= require("../hw_devices/Device.js").LED;
 const Microphone= require("../hw_devices/Microphone.js");
 const MPU6500	= require("../hw_devices/MPU6500.js");
@@ -22,6 +23,7 @@ const WS2801	= require("../hw_devices/WS2801.js");
 
 class Action {}
 Action.schema = {
+	description: "A selection of options which represent commands (shown as a combo-box in the WEB UI)",
 	definitions: {
 		action: 	Device.actionStrict,
 		actions: {
@@ -49,6 +51,7 @@ Action.getApiDescription = function() {
 
 class FrontPanel {}
 FrontPanel.schema = {
+	description: "A virtual representation of the physical housing, used in the WEB UI for relative positioning of all UI widgets",
 	definitions: {
 		action: 	Device.actionStrict,
 		actions: {
@@ -67,19 +70,12 @@ FrontPanel.getApiDescription = function() {
 	return "";
 }
 
-// =========================================================================================================
-
-class Label {}
-Label.schema = {
-}
-Label.getApiDescription = function() {
-	return "";
-}
 
 // =========================================================================================================
 
 class Task { }
 Task.schema = {
+	description: "A background task which triggers actions in a certain interval",
 	definitions: {
 		action: 	Device.action,	// allow additional properties like interval, value
 		actions: {
@@ -156,6 +152,8 @@ class Hardware {
 		
 		this.appObject = null;		// application instance
 		
+		this.createHwdSchema();
+		
 	}
 	
 	loadDescription(type,name,rev,emulate,silent) {
@@ -190,12 +188,12 @@ class Hardware {
 						valid=false;
 						continue;
 					}
-					else if (!Hardware.schema[elm.type]) {
+					else if (!this.schema[elm.type]) {
 						Logger.error(this.type+" HWD: element '"+id+"' has unknown type '"+elm.type+"'");
 						valid=false;
 						continue;
 					}
-					if (!ajv.validate(Hardware.schema[elm.type],elm)) {
+					if (!ajv.validate(this.schema[elm.type],elm)) {
 						Logger.error(this.type+" HWD: element '"+id+"' does not conform to schema for '"+elm.type+"'");
 						for (var error of ajv.errors) {
 							Logger.error(error);
@@ -458,10 +456,19 @@ class Hardware {
 			}
 			else if (elm.type=="WS2801") {		
 				// create led strip
+				if (!elm.shape ) {
+					if (elm.numLEDs % 2) {
+						elm.shape = { layout:"rect", dimX:Math.floor(elm.numLEDs/2),dimY:1, radius:20, spaceX:25, spaceY:25 };
+					}
+					else {
+						elm.shape = { layout:"rect", dimX:elm.numLEDs/2,dimY:0, radius:20, spaceX:25, spaceY:25 };
+					}
+				}
 				elm.dev = new WS2801 (
 					elm.id,
 					elm.name,
 					elm.numLEDs,
+					elm.shape,
 					elm.emulate
 				);
 				elm.dev.connect("/dev/spidev"+elm.spi,elm.speed);
@@ -691,106 +698,132 @@ class Hardware {
 		return response;
 	}
 	
-	apiHelp(type) {
-		var help = {
-			HWD_Syntax:	"For details on the HWD syntax see the online manual. "+
-						"Hardware elements have some common properties like elm,'type','name','title' etc. "+
-						"Depending on their 'type' they have additional properties as described in the schema below."+
-						"The HWD file is checked against the HWD_Schema upon startup of berry-frame.",
-			HWD_Schema: Hardware.schema,
-			API_Syntax: "For details on the API syntax see the online manual. "+
-						"each API call requires an element id ('elm'); "+
-						"the details depend on the 'type' of that element; "+
-						"apart from the elements defined in the HWD file you can also use some reserved words "+
-						"to reference the Hardware as a whole ('hardware'), "+
-						"the server as a whole ('server'), the application as a whole ('app') "+
-						"or the API as a whole ('api'). ",
-			Example:	"If a hardware description contains a LED named 'alarm', you could call "+
-						"yourBerryServer:port/api?id=alarm,cmd:blink,cycles:3",
-			Api: {
-						reserved_word_hardware:		Hardware.getApiDescription(),
-						reserved_word_server:	 	Hardware.getApiDescriptionForServer(),
-						reserved_word_app:			App.getApiDescription(),
-						reserved_word_api:			Api.getApiDescription()
+	getDeviceTypes() {
+		var text="";
+		for (var type in this.deviceTypes) {
+			text+="    "+type.padEnd(16)+(this.schema[type].description || "?") + "\n";
+		}
+		return text;
+	}
+	
+	apiHelp(type,berry) {
+		var help = {};
+		if (type=="all") {
+			help.HWD_Syntax =
+				"For details on the HWD syntax see the online manual. "+
+				"Hardware elements have some common properties like elm,'type','name','title' etc. "+
+				"Depending on their 'type' they have additional properties as described in the schema below."+
+				"The HWD file is checked against the HWD_Schema upon startup of berry-frame.";
+			help.HWD_Schema = this.schema;
+			help.API_Syntax =
+				"For details on the API syntax see the online manual. "+
+				"each API call requires an element id ('elm'); "+
+				"the details depend on the 'type' of that element; "+
+				"apart from the elements defined in the HWD file you can also use some reserved words "+
+				"to reference the Hardware as a whole ('hardware'), "+
+				"the server as a whole ('server'), the application as a whole ('app') "+
+				"or the API as a whole ('api'). ";
+			help.Example = 
+				"If a hardware description contains a LED named 'alarm', you could call "+
+				"yourBerryServer:port/api?id=alarm,cmd:blink,cycles:3";
+			help.API = {};
+
+			// add api descriptions for all device types
+			for (var type in this.deviceTypes) {
+				help.API["element_of_type_"+type] = this.deviceTypes[type].getApiDescription();
 			}
+			help.API.reserved_word_hardware	= Hardware.getApiDescription();
+			help.API.reserved_word_server	= Hardware.getApiDescriptionForServer();
+			help.API.reserved_word_app		= App.getApiDescription();
+			help.API.reserved_word_api		= Api.getApiDescription();
 		}
-		// add api descriptions for all device types
-		for (var type in Hardware.deviceTypes) {
-			help.Api["element_of_type_"+type] = Hardware.deviceTypes[type].getApiDescription();
+		else if (this.deviceTypes[type]) {
+			help.HWD_Schema = this.deviceTypes[type].schema;
+			help.API = {};
+			help.API["element_of_type_"+type] = this.deviceTypes[type].getApiDescription();			
 		}
-		if (type) {
+		else {
+			help.HWD_Schema = {};
+			help.API = {};
+			help.error = "unsupported device type : "+type;
+		}
+		if (berry) {
 			try {
-				const appClass = require("../app/"+type+"/"+type+".js")[type];
-				help[type] = appClass.getApiDescription();
+				// try to load application class and add its API
+				const appClass = require(process.cwd()+"/"+berry+"/server/"+berry+".js")[berry];
+				help.API["berry_"+berry] = appClass.getApiDescription();
 			}
-			catch(e) {
-				; // if we do not have an application class: ignore silently
+			catch(e) { 
+				help.info = "There is no application class for berry: "+berry;
 			}
 		}
+		
 		return help;
 	}
 	
+	createHwdSchema() {
+
+		this.deviceTypes= {
+			Action:		Action,
+			ADS1115 :	ADS1115,
+			Button:		Button,
+			Display:	Display,
+			DS1820:		DS1820,
+			FrontPanel:	FrontPanel,
+			Label:		Label,
+			LED:		LED,
+			Microphone:	Microphone,
+			MPU6500:	MPU6500,
+			PWDevice:	PWDevice,
+			Speakers:	Speakers,
+			Task:		Task,
+			TextInput:	TextInput,
+			WS2801:		WS2801
+		};
+
+		// the schema for HWD element types
+		this.schema={};
+		for (var type in this.deviceTypes) this.schema[type] = this.deviceTypes[type].schema;
+
+		// merge inherited properties into each element schema
+		for (var elm in this.schema) {
+			var schema = this.schema[elm];
+
+			// all elements are objects
+			schema.type = "object";
+			if (!schema.properties) schema.properties = {};
+			
+			// do not allow unknown properties
+			schema.additionalProperties = false;
+			
+			// we will add some required properties
+			if (!schema.required) schema.required=[];
+
+			// common properties for all element types
+			schema.properties.type  	= { type: "string", description: "a valid device type name" };
+			schema.required.push("type");
+			schema.properties.id		= { type: "string", description: "a unique ID for the hardware element" };
+			schema.required.push("id");
+			schema.properties.name  	= { type: "string", description: "a name used as a label in the UI" };
+			schema.properties.title		= { type: "string", description: "a hover text used in the UI" };
+			schema.properties.style		= { type: "string", description: "CSS used to style the layout in the UI" };
+			schema.properties.emulate	= { type: "boolean",description: "true forces emulation, default: Windows=on, Raspi=off" };
+
+			// properties for devices with cable(s)
+			if (["ADS1115","Button","DS1820","LED","MPU6500","PWDevice","WS2801"].includes(elm)) {
+				schema.properties.cable = { type: "string", description: "cable colors/numbers used to connect to GPIO pin(s)" };
+			}
+
+			// properties for GPIO devices
+			if (["Button","LED","PWDevice","DS1820",].includes(elm)) {
+				schema.properties.gpio  = { type: "integer", description: "GPIO number according to BCM schema" };
+				schema.properties.color = { type: "string", description: "use color name or #RGB notation" };
+				schema.required.push("gpio");
+			}
+
+		}
+	}	
 }
-
-Hardware.deviceTypes= {
-	Action:		Action,
-	ADS1115 :	ADS1115,
-	Button:		Button,
-	Display:	Display,
-	DS1820:		DS1820,
-	FrontPanel:	FrontPanel,
-	Label:		Label,
-	LED:		LED,
-	Microphone:	Microphone,
-	MPU6500:	MPU6500,
-	PWDevice:	PWDevice,
-	Speakers:	Speakers,
-	Task:		Task,
-	TextInput:	TextInput,
-	WS2801:		WS2801
-};
-
-// the schema for HWD element types
-Hardware.schema={}
-for (var type in Hardware.deviceTypes) Hardware.schema[type] = Hardware.deviceTypes[type].schema;
-
-// merge inherited properties into each element schema
-for (var elm in Hardware.schema) {
-	var schema = Hardware.schema[elm];
-
-	// all elements are objects
-	schema.type = "object";
-	if (!schema.properties) schema.properties = {};
-	
-	// do not allow unknown properties
-	schema.additionalProperties = false;
-	
-	// we will add some required properties
-	if (!schema.required) schema.required=[];
-
-	// common properties for all element types
-	schema.properties.id		= { type: "string", description: "a unique ID for the hardware element" };
-	schema.required.push("id");
-	schema.properties.type  	= { type: "string", description: "a valid device type name (see berry-frame/hw_devices/* )" };
-	schema.required.push("type");
-	schema.properties.name  	= { type: "string", description: "a name used as a label in the UI" };
-	schema.properties.title		= { type: "string", description: "a hover text used in the UI" };
-	schema.properties.style		= { type: "string", description: "CSS used to style the layout in the UI" };
-	schema.properties.emulate	= { type: "boolean",description: "true forces emulation even on the Raspi" };
-
-	// properties for devices with cable(s)
-	if (["ADS1115","Button","DS1820","LED","MPU6500","PWDevice","WS2801"].includes(elm)) {
-		schema.properties.cable = { type: "string", description: "cable colors/numbers used to connect the GPIO device" };
-	}
-
-	// properties for GPIO devices
-	if (["Button","LED","PWDevice","DS1820",].includes(elm)) {
-		schema.properties.gpio  = { type: "integer", description: "GPIO number according to BCM schema" };
-		schema.properties.color = { type: "string", description: "use color name or #RGB notation" };
-		schema.required.push("gpio");
-	}
-
-};
 
 Hardware.getApiDescription = function() {
 	return [

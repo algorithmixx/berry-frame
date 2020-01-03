@@ -5,6 +5,10 @@ echo "-----------------------------------------------------------"
 echo "this script must be started from your 'berries' directory !"
 echo "-----------------------------------------------------------"
 
+rm -f log/monitor.log
+touch log/monitor.log
+chmod 666 log/monitor.log
+
 rm -f restart.cmd
 
 while [ true ]
@@ -14,9 +18,9 @@ do
 		sleep 5
 	done
 	sleep 2
-	echo restarting ..
-	date
-	cat restart.cmd
+	echo restarting .. >> log/monitor.log
+	date >> log/monitor.log
+	cat restart.cmd >> log/monitor.log
 	chmod 777 restart.cmd
 	./restart.cmd &
 	sleep 5
