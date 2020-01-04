@@ -817,9 +817,9 @@
 
 	Install __node and npm__
 
-	Please note: If you have a Raspi Zero you have an armv61 processor.
+	Please note: Older Raspberry models and the Raspi Zero have an armv61 processor.
 	In that case you should install directly from the "dist" directory of nodejs.org
-	the latest version published for the ARMv61 processor:
+	_the latest version published for the ARMv61 processor_:
 ````
 	curl -o node-v11.15.0-linux-armv6l.tar.gz https://nodejs.org/dist/v11.15.0/node-v11.15.0-linux-armv6l.tar.gz
 	tar -xzf node-v11.15.0-linux-armv6l.tar.gz
@@ -829,7 +829,8 @@
 	
 ````
 	
-	If you have a __newer processor__ you can use ``apt`` to get the latest version of nodejs and npm:
+	If you have a __newer model__ (check with ``cat /proc/cpuinfo``) you can use ``apt`` to get the latest
+	version of nodejs and npm:
 
 ````
 	sudo apt-get install nodejs npm

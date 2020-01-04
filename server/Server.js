@@ -274,7 +274,6 @@ class Server {
 		if 		(action.elm=="server") {
 			
 			// ACTIONS referring to the SERVER as a whole
-			
 			if (action.cmd=="stop" || action.cmd=="restart" || action.cmd=="update") {
 				// client wants to stop the server
 				try {
@@ -345,7 +344,7 @@ class Server {
 		
 		else if (action.elm=="app") {
 			// the element targets the app specific class (remote procedure call)
-			return theHardware.appObject[action.cmd](null,action.arg);
+			return theHardware.appObject[action.cmd](null,action.arg||action.value);
 		}
 		
 		// ACTIONS referring to the API
@@ -394,7 +393,9 @@ class Server {
 					break;
 				}
 				if (optElm=="app") {
-					if (theHardware.appObject && theHardware.appObject[optCmd]) return theHardware.appObject[optCmd](null,optArg);
+					if (theHardware.appObject && theHardware.appObject[optCmd]) {
+						return theHardware.appObject[optCmd](null,optArg);
+					}
 					else {
 						var msg="Server: application class has no method '"+optCmd+"'";
 						Logger.error(msg);

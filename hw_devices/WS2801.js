@@ -335,6 +335,12 @@ WS2801.schema = {
 
 WS2801.getApiDescription = function() {
 	return [
+		{	cmd:"fillColor",
+			args:[
+				{name:"value",	meaning:"#000000 .. #ffffff"}
+			],
+			effect:"flood all LEDs with the same css color value"
+		},
 		{	cmd:"play",
 			args:[
 				{name:"prog",	meaning:"a symbolic name for a light program to be played"}

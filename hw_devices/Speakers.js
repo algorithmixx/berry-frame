@@ -26,7 +26,7 @@ class Speakers extends Device {
 	say(text) {
 		if (typeof text=="string") Logger.log("Speakers     tts input = "+text);
 		else {
-			Logger.error("Speakers: text must be string. ("+text+")");
+			Logger.error("Speakers: text to say must be string. ("+text+")");
 			return;
 		}
 		const fs = require('fs');

@@ -156,7 +156,7 @@ class Hardware {
 		
 	}
 	
-	loadDescription(type,name,rev,emulate,silent) {
+	loadDescription(type,name,rev,emulate,silent,full) {
 		// load a textual description of the MCU (micro controller unit) and its peripherals to configure the hardware
 		// if a specific rev(ision) is given: search for a sub directory with that name
 
@@ -168,7 +168,7 @@ class Hardware {
 			var fs 	= require('fs');	// filesystem module
 			var data = fs.readFileSync(path+"server/"+type+".hwd",'utf8');
 			this.parseDescription(name,data);
-
+						
 			// if there is no hardware or if intentional emulation was requested: emulate the hardware
 			// emulation will activate logging by default
 			
@@ -176,6 +176,11 @@ class Hardware {
 				this.setAll("emulate",true);
 			}
 			
+			// if we do not need a full load we are done
+			if (!full) return true;
+
+			// full load is only needed for the Berry we are going to process
+
 			// validate against schema (if not in silent mode)
 			if (!silent) {
 				Logger.info("Hardware     validating description");

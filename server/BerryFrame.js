@@ -27,7 +27,7 @@ class BerryFrame {
 		// get current script name
 
 		this.scriptName	 = process.argv[1].replace(/.*[/\\]/,'').replace(/[.]js$/,'');
-		this.versionId	 = "1.2.13";
+		this.versionId	 = "1.2.15";
 		
 		// find known Berry types and their default properties (description, port, rev, ..)
 		this.berryTypes = this.findBerryTypes();
@@ -70,13 +70,13 @@ class BerryFrame {
 			if (hwd=="zip") return;
 			if (!fs.lstatSync("./"+hwd).isDirectory()) return;
 			try { if (!fs.existsSync("./"+hwd+"/server")) return; } catch(e) {}
-			theHardware.loadDescription(hwd,hwd,"",false,true);
+			theHardware.loadDescription(hwd,hwd,"",false,true,false);
 			berryTypes[hwd]={name:hwd,port:theHardware.port,title:theHardware.title,desc:theHardware.desc,rev:theHardware.rev};
 		});
 
 		
 		// and add the "Master" berry type
-		theHardware.loadDescription("Master","Master","",false,true);
+		theHardware.loadDescription("Master","Master","",false,true,false);
 		berryTypes.Master={name:"Master",port:theHardware.port,title:theHardware.title,desc:theHardware.desc,rev:theHardware.rev};
 
 		return berryTypes;
@@ -235,21 +235,12 @@ class BerryFrame {
 	load() {
 		// create devices and start processing
 
-/*
-for (var method of Object.getOwnPropertyNames( BerryFrame.prototype )) {
-	console.log(method);
-}
-return;
-*/
-
-
-
 		if (this.cmdLine==null) {
 			return;
 		}
 		
-		// set default configuration
-		if (!theHardware.loadDescription(this.berryType.name,this.name,this.revision,this.emulate,false)) return;
+		// load full HWD configuration
+		if (!theHardware.loadDescription(this.berryType.name,this.name,this.revision,this.emulate,false,true)) return;
 
 		// "build" the hardware
 		if (!theHardware.build(this.name,this.versionId)) return;
