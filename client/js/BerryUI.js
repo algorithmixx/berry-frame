@@ -419,7 +419,8 @@ class BerryUI {
 			if (pp==28) pih+="<tr><td colspan='6'><hr/></td></tr>";
 		}
 		pih+="</table>";
-		$("#hardwareIface_"+hw).append(pih);
+		$("#hardwareIface_"+hw).append(pih);		
+		
 		
 		// hardware elements (list) and panel ==========================================================
 		
@@ -430,6 +431,7 @@ class BerryUI {
 			delete showElm.name;
 			delete showElm.log;
 			delete showElm.emu;
+			delete showElm.apiHTML;
 
 			// add description of the element to the setup list
 			var html = "<hr/>";
@@ -449,17 +451,26 @@ class BerryUI {
 							;
 			html+=	"	</div>";
 			html+=	"</div>";
+
 			$("#hardwareSetup_"+hw).append(html);
+
+			// API
+			var api = "<div style='margin-top:10px;background-color:#eeffee;border:solid darkgreen 1px;padding-left:10px;'>"
+			+elm.apiHTML+"</div>";	// add API description
+
+			$("#hardwareSetup_"+hw).append(api);
+
 
 			
 			// produce visual representation of the element on the front panel
+
 			var it="";	// hardware item html
 			
 			if 		(elm.type=="Action") {
 				if (elm.options.length==1) {
 					var value = elm.options[0].value;
 					if (!value) value = elm.options[0]; 
-					// Action without alternatives
+					// Action without alternatives, create a single button
 					it=	"<button id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style=\""
 						+elm.style+"\" onclick='app.sendAction("+hw+",{elm:\""+elm.id+"\",value:\""+value+"\"});'>"+value+"</button>";
 				}
@@ -468,7 +479,9 @@ class BerryUI {
 					var opts="";
 					for (var opt of elm.options) {
 						if (typeof opt == "string") opts+= "<option>"+opt+"</option>";
+						else  if (opt.text) opts+="<option value='"+opt.value+"'>"+opt.text+"</option>";
 						else  opts+="<option>"+opt.value+"</option>";
+						
 					}
 					it=	"<select id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style=\""
 						+elm.style+"\""+" onmouseup='var open=$(this).data(\"isopen\"); if(open) { app.sendAction("
@@ -625,6 +638,14 @@ class BerryUI {
 
 			$("#hardware_"+hw).append(it);
 			
+		}
+
+		$("#hardwareSetup_"+hw).append("<h2>API for hardware, server, app / berry, api</h2>");
+
+		for (var elm in response.apiHTML) {
+			$("#hardwareSetup_"+hw).append("<div style='background-color:#ddffff;margin-top:10px;border:solid 1px cyan;padding-left:10px'>"
+				+response.apiHTML[elm]+"</div>"
+			);
 		}
 
 		$("#hwimg_"+hw+" img").css({maxHeight: $("#hw_"+hw).height()});

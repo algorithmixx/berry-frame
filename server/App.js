@@ -54,22 +54,6 @@ App.getApiDescription = function() {
 		{	cmd:	"onStop",
 			effect:	"a function which is automatically performed immediately before shutdown"
 		},
-		{	cmd:	"onActivate",
-			effect:	"a function which receives and handles a push button event ('down' or 'up')",
-			args: [
-				{name:"id",		meaning:"the id of the button causing the event"},
-				{name:"state",	meaning:"the state ('up' or 'down'"},
-			]
-		},
-		{	cmd:	"onPressed",
-			effect:	"a function which receives and handles a switch button press event",
-			args: [
-				{name:"id",		meaning:"the id of the button causing the event"},
-			]
-		},
-		{	cmd:	"...",
-			effect:	"... more methods might be defined in the application-specific class for a hardware definition"
-		},
 	];
 }
 

@@ -105,8 +105,10 @@ MPU6500.getApiDescription = function() {
 			effect:"returns spatial orientation as [x,y,z] in degrees"
 		},
 		{	cmd:"setValue",
-			value:"[x,y,z] : three numeric values",
-			effect:"sets the (simulated) orientation as [x,y,z] in degrees"
+			effect:"sets the (simulated) orientation as [x,y,z] in degrees",
+			args: [
+				{	name: "value", meaning: "[x,y,z] as three numeric values in degrees"  }
+			]
 		}
 	];
 }

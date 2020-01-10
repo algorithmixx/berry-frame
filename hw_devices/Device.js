@@ -67,6 +67,8 @@ Device.action = {
 			anyOf : [ { type:"string"}, {type:"number"}, {type:"boolean"} ],
 			description: "perform cmd only if this value matches the getValue() method of elm",
 		},
+		value:	{ type: "string",  description: "the option value in the drop down box of the Web UI" },
+		text:	{ type: "string",  description: "the option text in the drop down box of the Web UI", default: "same as 'value'" },
 		after:	{ type: "integer", description: "a new, isolated timer (msec)"			},
 		delay:	{ type: "integer", description: "a delay timer (msec) bound to the element",	},
 		once:	{ type: "boolean", description: "if true: do not change a delay timer which has already been scheduled", default: false	},
@@ -95,7 +97,7 @@ Label.schema = {
 }
 
 Label.getApiDescription = function() {
-	return "";
+	return [];
 }
 
 // =========================================================================================================

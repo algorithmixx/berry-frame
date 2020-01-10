@@ -378,7 +378,11 @@ class Server {
 			else if (target.type=="Action") {
 				// client tells us that an action was selected
 				var optElm, optCmd, optArg;
-				if (!arg.value) arg.value=target.options[0].value;
+				if (!arg.value) {
+					if (isPresent(action.value)) arg.value = action.value;
+					else arg.value=target.options[0].value;
+				}
+				var found=false;
 				for (var opt of target.options) {
 					if ((!opt.value && opt!=arg.value) || (opt.value && opt.value!=arg.value)) continue;
 					if (target.selected) {
@@ -390,7 +394,13 @@ class Server {
 					if (opt.cmd) optCmd=opt.cmd;
 					if (opt.arg) optArg=opt.arg;
 					if (!opt.arg) optArg = arg.value;
+					found=true;
 					break;
+				}
+				if (!found) {
+					var msg="Server: unknown option value for '"+target.id+"' : '"+arg.value+"'";
+					Logger.error(msg);
+					return msg;
 				}
 				if (optElm=="app") {
 					if (theHardware.appObject && theHardware.appObject[optCmd]) {

@@ -44,7 +44,15 @@ Action.schema = {
 	},
 }
 Action.getApiDescription = function() {
-	return "";
+	return [
+		{
+			cmd:	"do",
+			effect:	"trigger the action",
+			args: [
+				{	name: "value", meaning: "one of the option values defined in the HWD", },
+			]
+		}
+	];
 }
 
 // =========================================================================================================
@@ -67,7 +75,7 @@ FrontPanel.schema = {
 	},
 }
 FrontPanel.getApiDescription = function() {
-	return "";
+	return [];
 }
 
 
@@ -93,7 +101,7 @@ Task.schema = {
 	}
 }
 Task.getApiDescription = function() {
-	return "";
+	return [];
 }
 
 // =========================================================================================================
@@ -645,6 +653,36 @@ class Hardware {
 		return {states:states};
 	}
 	
+	getApiHTML(type,berry) {
+		var api = this.apiHelp(type,berry);
+		var html = "";
+		var inst = null;
+		for (var instName in api.API) {
+			inst=api.API[instName];
+			break;
+		}
+		
+		if (inst.length==0) return "<h4>"+type+" has no API methods.";
+		
+		for (var method of inst) {
+			html+="<h4>"+(type=="app" ? this.name : type)+" . "+method.cmd+" ( ";
+			var parms=[];
+			if (method.args) {
+				for(var arg of method.args) parms.push(arg.name); 
+			}
+			html+=parms.join(", ");
+			html+=" ) : &nbsp; <i style='font-weight:300'>"+method.effect+"</i></h4>";
+			if (method.args) {
+				html+="<div style='margin-left:80px'>";
+				for (var arg of method.args) {
+					html+="<pre>"+("\n"+JSON.stringify(arg,null,2)).replace(/\n\{/g,'').replace(/\n\}/g,'')+"</pre>";
+				}
+				html+="</div>";
+			}
+		}
+		return html;
+	}
+	
 	getSetupJson() {
 		var hwElms={};
 		var gpios = [];
@@ -670,14 +708,8 @@ class Hardware {
 					}
 				}
 			}
-			if 		(elm.type=="Button") 	hwElms[elmId].api = Button.getApiDescription();
-			else if (elm.type=="Display")	hwElms[elmId].api = Display.getApiDescription();
-			else if (elm.type=="LED") 		hwElms[elmId].api = LED.getApiDescription();
-			else if (elm.type=="Microphone")hwElms[elmId].api = Microphone.getApiDescription();
-			else if (elm.type=="MPU6500")	hwElms[elmId].api = MPU6500.getApiDescription();
-			else if (elm.type=="WS2801") 	hwElms[elmId].api = WS2801.getApiDescription();
-			else if (elm.type=="Speakers") 	hwElms[elmId].api = Speakers.getApiDescription();
-			else if (elm.type=="TextInput") hwElms[elmId].api = TextInput.getApiDescription();
+			hwElms[elmId].apiHTML	= this.getApiHTML(elm.type);
+			hwElms[elmId].api		= this.deviceTypes[elm.type].getApiDescription();
 		}
 		for (var p=1;p<=40;p++) {
 			if (!pins[p]) pins[p]={gpio:this.pinGpios[p],signal:this.pins[p]};
@@ -698,6 +730,19 @@ class Hardware {
 			},
 			pins:	pins,
 			gpios:	gpios,
+			api:	{
+				hardware:		Hardware.getApiDescription(),
+				server:			Hardware.getApiDescriptionForServer("server"),
+				app:			App.getApiDescription(),
+				api:			Api.getApiDescription(),
+			},
+			apiHTML:	{
+				hardware:		this.getApiHTML("hardware"),
+				server:			this.getApiHTML("server"),
+				app:			this.getApiHTML("app"),
+				berry:			this.appObject ? this.getApiHTML(this.appObject.constructor.name,this.appObject.constructor.name) : "",
+				api:			this.getApiHTML("api"),
+			},
 		};
 		if (this.img) response.setup.img = this.img;		
 		return response;
@@ -742,6 +787,22 @@ class Hardware {
 			help.API.reserved_word_app		= App.getApiDescription();
 			help.API.reserved_word_api		= Api.getApiDescription();
 		}
+		else if (type=="hardware") {
+			help.HWD_Schema = {};
+			help.API = {hardware: Hardware.getApiDescription()};
+		}		
+		else if (type=="server") {
+			help.HWD_Schema = {};
+			help.API = {server: Hardware.getApiDescriptionForServer()};
+		}		
+		else if (type=="app") {
+			help.HWD_Schema = {};
+			help.API = {app: App.getApiDescription()};
+		}		
+		else if (type=="api") {
+			help.HWD_Schema = {};
+			help.API = {api: Api.getApiDescription()};
+		}		
 		else if (this.deviceTypes[type]) {
 			help.HWD_Schema = this.deviceTypes[type].schema;
 			help.API = {};
