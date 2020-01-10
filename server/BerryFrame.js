@@ -27,7 +27,7 @@ class BerryFrame {
 		// get current script name
 
 		this.scriptName	 = process.argv[1].replace(/.*[/\\]/,'').replace(/[.]js$/,'');
-		this.versionId	 = "1.2.16";
+		this.versionId	 = "1.3.0";
 		
 		// find known Berry types and their default properties (description, port, rev, ..)
 		this.berryTypes = this.findBerryTypes();
@@ -116,7 +116,9 @@ class BerryFrame {
 				
 				['l' , 'logLevel=0',			'level of logging (on stdout)'											],
 				['e' , 'emulate',				'emulate the devices, default:true on Windows, false on Raspberry'		],
-				['x' , 'exclude=none',			'client functions to exclude (rs,rb,U,R,S,X,all,none), default: none'	],
+				['x' , 'exclude=none',			'admin functions to exclude (rs,rb,U,R,S,X,all,none), default: none'	],
+				
+				['f' , "forward=",				'accept only requests which were forwarded from the given server'		],
 				
 			])
 			.bindHelp()
@@ -253,6 +255,7 @@ class BerryFrame {
 			this.revision,
 			this.port,
 			this.master,
+			this.forward,
 			this.cmdLine.options['exclude'],
 			this.cmdLine.options['browse'],
 			

@@ -166,16 +166,17 @@
 	But complex applications with exotic devices will require you to extend the framework.
 	This means that you must understand its architecture - which requires some effort, indeed.
 	<p/>
-	And in spite of the many features you will probably miss one aspect: <b>security</b>.
-	Berry does not help you to protect your system against evil attacks. In fact __berry-frame__ is
-	very liberal; the generic web client can stop or restart the server or even
-	shutdown the whole Raspi. For embedded devices it is quite normal to have
-	a physical "off"-button which shuts down the whole device. But if you allow
-	web connections to your machine you may want to protect such features by some kind
-	of access control. Berry __will not prevent you__ from doing that, 
-	but it has no built-in security features to help you with protecting your _berries_.
+	And in spite of the many features __berry-frame__ will put the responsibility for securing
+	access to your _berries_ in your hands. There are two features which will help you:
 	
-	If you want to add security aspects to the __Berry framework__: Contact the author!
+	(A) There is a commandline option which allows to suppress "critical features"
+	like rebooting the raspi from the web UI.
+	
+	(B) There is a commandline option to restrict incoming connections to those which have been
+	forwarded by a definable server. Using this feature you can protect _berries_
+	by installing a _reverse proxy server_ which is the only one allowed to talk to your _berry_ 
+	and which exposes a public port to the web. It is your responsibility to install such a server
+	(typically: apache) and to care for its security (typically: htdigest).	
 	</div>
 
 	### Why should I use __berry-frame__?
@@ -1044,6 +1045,7 @@
 	for downloading a berry which is currently running.
 
 
+
 ## <a name="c13"/> 13) LICENSE and COPYRIGHT
 
 	Copyright 2019 Gero Scholz.
@@ -1061,15 +1063,147 @@
 	precautions it will run with root privileges (which seems to be technically
 	necessary for hardware PWM but not for any other peripheral devices).
 	
-	If you do not use the command line option ``x`` to exclude certain UI options
-	the generic client will allow the user to shutdown or reboot the raspberry pi
-	computer. While this may be acceptable in some environments you might want
-	to avoid this in others.
-	
 	If you did not change the password for user ``pi`` many people and bots 
 	will guess it easily.
+
+	The command line option ``x`` allows to exclude certain UI options (comma separation):
+	* rs = do not offer to restart the server process
+	* rb = do not offer to reboot the raspi
+	* U  = do not offer to update the _berry-frame_ software
+	* S  = do not offer to stop the server process
+	* X  = do not offer to shutdown/halt the raspi
+	* all = all of the above
+	Please note that this is not a very tight protection as a manipulated client would
+	be able to apply these commands to the server.
 	
 	Do not expose your Raspi to the internet unless you know what you are doing!
-		
+
+	If you really want to expose a _berry_ to the internet we recommend to install a reverse proxy 
+	which maps an arbitrary public URL(+port) to the (private) port where your _berry_is listening.
+	In that case start your _berry_ with the commandline option "-f name_of_your_proxy" to ensure 
+	that it will only accept requests from your proxy. Typically the reverse proxy will also 
+	sit on the raspi and call the _berry_ via forwarding modules and URL rewriting.
+
+	Let us assume you want to use port 80 of your reverse proxy for other purposes. 
+	So we choose a port, say 19009, as external port which interacts with
+	port, say 9009, of your _berry_. Proceed as follows:
+
+	* ``apt-get install apache2``
+	* ``sudo a2enmod rewrite``
+	* ``sudo a2enmod proxy_http``
+	* ``sudo a2enmod proxy_fcgi``
+	* ``sudo a2enmod proxy_wstunnel``
+	* ``sudo a2enmod auth_digest``
+	* add port 19009 to /etc/apache2/ports.conf
+	* create ``/etc/apache2/sites-available/myberry.org.conf``;
+		instead of "myberry.org" you could also fill in the name of your domain;
+	* The contents should look like this (optionally replacing "myberry.org" by your domain)
+<pre>
+&lt;VirtualHost *:19009&gt;
+    ServerAdmin admin@myberry.org
+    ServerName myberry.org
+    ServerAlias www.myberry.org
+    DocumentRoot /var/www/myberry.org
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+    &lt;Directory /var/www/myberry.org/&gt;
+    &lt;/Directory&gt;
+&lt;/VirtualHost&gt;
+</pre>
+	* Now create the root directory for the virtual host: ``/var/www/myberry.org``
+	and a small file within that directory, e.g. ``/var/www/myberry.org/hello.html``
+	* make sure that the root directory and all files inside belong to user www-data
+	and to group www-data: ``chown -R www-data:www-data /var/www/myberry.org``
+
+	* enable the virtual host: ``sudo a2ensite myberry.org.conf``
+	* restart apache: ``sudo systemctl reload apache2``
+	* Open in the browser: ``http://myberry.org:19009/hello.html``
+	
+	Note: the external address of the raspi need not be identical with the name of 
+	your _berry_. Example:
+	
+	.. Your raspi can be reached in the LAN via 192.168.0.88 or as 'rappi.fritz.box'
+	.. Your berry uses port 9009.
+	.. Your proxy is called "myberry.org" and exposes port 19009.
+	.. In your router (Fritz box) you map this port to 20000
+	.. Your router uses a dyndns service called dyndns.org and your account there
+	assigns the subdomain 'lollipop' to you.
+	In that case you can reach your _berry_ via http://lollipo.dyndns.org:20000
+	.. With a sophisticated reverse proxy configuration it might even be possible
+	to use https protocol in the web and map it to plain http when talking to the _berry_.
+	
+	------
+	
+	* You should now see the contents of the file ``hello.html``. This means that
+	the virtual host is working correctly at port 19009.
+	
+	* Now we can add the proxy rules and the url rewriting rules
+	to the config file. The complete file looks loke this:
+
+<pre>
+&lt;VirtualHost *:19009&gt;
+    ServerAdmin admin@myberry.org
+    ServerName myberry.org
+    ServerAlias www.myberry.org
+    DocumentRoot /var/www/myberry.org
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+    
+    &lt;Directory /var/www/myberry.org/&gt;
+    &lt;/Directory&gt;
+    
+    RewriteEngine On
+    RewriteCond %{REQUEST_URI}  ^/socket.io            [NC]
+    RewriteCond %{QUERY_STRING} transport=websocket    [NC]
+    RewriteRule /(.*)           ws://localhost:9009/$1 [P,L]
+
+    ProxyPass        /chat http://localhost:9009
+    ProxyPassReverse /chat http://localhost:9009
+
+    ProxyPass        /socket.io  http://localhost:9009/socket.io
+    ProxyPassReverse /socket.io  http://localhost:9009/socket.io
+
+    &lt;Location /&gt;
+        ProxyPass        http://127.0.0.1:9009/
+        ProxyPassReverse http://127.0.0.1:9009/
+    &lt;/Location&gt;
+&lt;/VirtualHost&gt;
+</pre>
+
+	* start your berry so that it is listening at port 9009
+	
+	* restart apache: ``sudo systemctl reload apache2``
+	* call http://myberry.org:19009 from a DIFFERENT machine, e.g. from 
+	your development PC
+	* You should see the user interface of your berry
+	
+	* if you call http://myberry.org:19009/hello.html you must get
+	an error now, because the request is forwarded to your _berry_is
+	regardless whether the file ``hello.html`` exists or not.
+	You can now delete ``hello.html``.
+	
+	* if you try to call the port 9009 directly it will respond with
+	"forbidden"
+
+	
+	* Now it is up to you to care for the security of the reverse proxy.	
+	Call ``sudo htdigest -c /var/www/.htpasswd -c Berry your_user_name``
+	and enter twice the password for that user. Make sure that the password file can 
+	be read by www-data: ``chmod 644 /var/www/.htpasswd``
+	
+	Then add the following lines to your vhost LOCATION definitions:
+
+````
+    AuthType Digest
+    AuthName "Berry"
+    AuthUserFile /var/www/.htpasswd
+    Require valid-user
+````
+
+	When you now call the public address and the port which is mapped by
+	the router (and forwarded by the reverse proxy) then a login window should
+	require you to enter your credentials.
+	
+	
 </div></body>
 </html>

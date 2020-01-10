@@ -428,27 +428,31 @@ class BerryUI {
 
 			var showElm = JSON.parse(JSON.stringify(elm));	// deep copy
 			// eliminate some members
-			delete showElm.name;
+			delete showElm.id;
+			delete showElm.type;
 			delete showElm.log;
+			delete showElm.gpio;
 			delete showElm.emu;
+			delete showElm.api;
 			delete showElm.apiHTML;
+			delete showElm.emulate;
 
 			// add description of the element to the setup list
 			var html = "<hr/>";
 			html+= 	"<div style='margin-top:10px'>";
 			html+= 	"	<div style='vertical-align:top;display:inline-block;width:100px;'>";
-			html+=	"		<i>"+elm.name+"</i>:";
+			html+=	"		<i>"+elm.type+"</i>:";
 			html+=  "	</div>";
 			html+=	"	<div style='display:inline-block;width:500px;'>";
-			html+=			JSON.stringify(showElm)
-								.replace(/"(.*?)"/g,"$1")
-								.replace(/([,;:])/g,"$1 ")
-								.replace(/^\{/,'')
-								.replace(/\}$/,'')
-								.replace(/api:/,'<br/>api:')
-								.replace(/style:/,'<br/>style:')
-								.replace(/protocol:/,'<br/>protocol:')
-							;
+			html+=	"<b>"+elm.id+"</b><br/>"+
+					JSON.stringify(showElm)
+						.replace(/"(.*?)"/g,"$1")
+						.replace(/([,;:])/g,"$1 ")
+						.replace(/^\{/,'')
+						.replace(/\}$/,'')
+						.replace(/(down|up|pressed|name|style|title|gpios|cable|color):/g,'<br/>$1:')
+						.replace(/protocol:/,'<br/>protocol:')
+			;
 			html+=	"	</div>";
 			html+=	"</div>";
 

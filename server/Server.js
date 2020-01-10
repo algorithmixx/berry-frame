@@ -35,7 +35,7 @@ class Server {
 	constructor() {
 	} 
 
-	configure(appTypes,appType,name,rev,port,master,exclude,browse) {
+	configure(appTypes,appType,name,rev,port,master,forward,exclude,browse) {
 		// the behavior of a server depends on being of type=="server" or "master"
 		
 		this.name		= name;									// a symbolic name for the server
@@ -45,6 +45,7 @@ class Server {
 		this.rev		= rev;									// hardware revision
 		this.port		= port;									// the port to be used
 		this.master		= master;								// the addresse of the master
+		this.forward	= forward;								// accept only requests forwarded from there
 		this.baseDir	= __dirname+'/..';						// the directory above the client with (HTML,CSS,images,JS)
 		this.exclude	= exclude;								// disable admin-like client UI features
 		this.browse		= browse;								// open the site in that browser after startup
@@ -592,10 +593,18 @@ class Server {
 		// where it hopefully will be picked up by the monitor
 		Logger.info("Server       starting berry "+type+": "+name);
 		const fs=require('fs');
-		fs.writeFile("./restart.cmd","@rem "+new Date().toString()+"\n@"
-			+"node node_modules/berry-frame/Berry -n "+name+" "+type+"\n",
-			function(err) { if(err) Logger.error(err); }
-		);
+		if (require('os').platform=="win32") {
+			fs.writeFile("./restart.cmd","@rem "+new Date().toString()+"\n@"
+				+"node node_modules/berry-frame/Berry -n "+name+" "+type+"\n",
+				function(err) { if(err) Logger.error(err); }
+			);
+		}
+		else {
+			fs.writeFile("./restart.cmd","# "+new Date().toString()+"\n"
+				+"node node_modules/berry-frame/Berry -n "+name+" "+type+"\n",
+				function(err) { if(err) Logger.error(err); }
+			);
+		}
 		return {msg:"starting berry, type="+type+", name="+name};
 	}
 
@@ -704,6 +713,12 @@ class Server {
 			request.socket.remoteAddress ||
 			(request.connection.socket ? request.connection.socket.remoteAddress : null)
 		;
+		if (my.forward && request.headers["x-forwarded-server"]!=my.forward) {
+			Logger.error("server running in protected mode, request was not forwarded by "+my.forward);
+			response.write("forbidden");
+			return response.end();
+		}
+		
 		var uri="";
 		try {
 			uri = decodeURI(request.url);
