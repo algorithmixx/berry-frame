@@ -20,15 +20,14 @@
 <div style="clear:both"></div>
 
 ## INTRODUCTION
-
-	The applications you build with __berry-frame__ are called _berries_.
 	
 	If you develop more than one application for small embedded computers you will
 	quickly notice that more than 70% of your program code does not really deal
 	with the application logic itself but with technical issues like accessing
 	a certain device or handling communication between your Raspi and a web client.
+	
 	__berry-frame__ offers a way to separate all this generic technical stuff from the
-	real application logic.
+	real application logic.	The applications you build with __berry-frame__ are called _berries_.
 	
 	__berry-frame__ is not a "graphical tool for drawing your programming logic".
 	It is based on a formal, structured description of the hardware components and
@@ -38,6 +37,15 @@
 	rules for visual representation of hardware elements in the browser UI 
 	and for the general flow of information between UI elements and 
 	hardware devices connected to the Raspi´s GPIO ports.
+	
+	The overall structure is illustrated by two diagrams which show the physical
+	aspects and the logical structure of __berry-frame__
+
+	<img src="http:img/Berry-Frame Hardware.png" style="margin:10px"/>
+	
+	-----
+	
+	<img src="http:img/Berry-Frame Software.png" style="margin:10px"/>
 
 	__berry-frame__ is written in _Javascript_. This means that we can use the same
 	language on the server (running under NodeJS) and on the client (running in the browser).
@@ -111,7 +119,7 @@
 		11) <a href="#c11"> Sample Berries					</a><p/>
 		12) <a href="#c12"> Creating a Berry				</a><p/>
 		13) <a href="#c13"> License and Copyright			</a><p/>
-		14) <a href="#c14"> Security Hints					</a><p/>
+		14) <a href="#c14"> Security						</a><p/>
 		
 	</div>
 	
@@ -166,8 +174,8 @@
 	But complex applications with exotic devices will require you to extend the framework.
 	This means that you must understand its architecture - which requires some effort, indeed.
 	<p/>
-	And in spite of the many features __berry-frame__ will put the responsibility for securing
-	access to your _berries_ in your hands. There are two features which will help you:
+	__berry-frame__ puts (almost) all <b>security aspects</b> for your _berries_ into your hands.
+	There are two features which will help you:
 	
 	(A) There is a commandline option which allows to suppress "critical features"
 	like rebooting the raspi from the web UI.
@@ -178,6 +186,8 @@
 	and which exposes a public port to the web. It is your responsibility to install such a server
 	(typically: apache) and to care for its security (typically: htdigest).	
 	</div>
+
+	<img src="http:img/Berry-Frame Security.png" style="margin:10px"/>
 
 	### Why should I use __berry-frame__?
 
@@ -791,7 +801,7 @@
     fi
 	
 ````
-	Make the file executable (``chmod +x wifi_restart``) and make sure that this file 
+	Make the file executable (``sudo chmod +x wifi_restart``) and make sure that this file 
 	will be started regularly, say every two minutes, 
 	calling 
 ````
@@ -1055,13 +1065,13 @@
 	under the terms of either: the ISC License.
 
 
-## <a name="c14"/> 14) SECURITY HINTS
+## <a name="c14"/> 14) SECURITY
 
 	As mentioned above, __berry-frame__ does not come with any specific
 	protections against malicious people or bots trying to attack your system.
 	If you start the ``onreboot`` script from within ``crontab`` without ``runuser``
 	precautions it will run with root privileges (which seems to be technically
-	necessary for hardware PWM but not for any other peripheral devices).
+	necessary if you are using PWM but not for any other peripheral devices).
 	
 	If you did not change the password for user ``pi`` many people and bots 
 	will guess it easily.
@@ -1088,68 +1098,67 @@
 	So we choose a port, say 19009, as external port which interacts with
 	port, say 9009, of your _berry_. Proceed as follows:
 
-	* ``apt-get install apache2``
+	* ``sudo apt-get install apache2``
 	* ``sudo a2enmod rewrite``
 	* ``sudo a2enmod proxy_http``
 	* ``sudo a2enmod proxy_fcgi``
 	* ``sudo a2enmod proxy_wstunnel``
 	* ``sudo a2enmod auth_digest``
-	* add port 19009 to /etc/apache2/ports.conf
-	* create ``/etc/apache2/sites-available/myberry.org.conf``;
-		instead of "myberry.org" you could also fill in the name of your domain;
-	* The contents should look like this (optionally replacing "myberry.org" by your domain)
+	* edit ``sudo nano /etc/apache2/ports.conf`` and add port 19009
+	* call ``sudo nano /etc/apache2/sites-available/myberry.proxy.conf``;
+		if you like you can replace "myberry" by the name of your berry
+	* The contents should look like this (optionally replacing "myberry" by the name of your berry)
 <pre>
+Define BerryProxy myberry.proxy
 &lt;VirtualHost *:19009&gt;
-    ServerAdmin admin@myberry.org
-    ServerName myberry.org
-    ServerAlias www.myberry.org
-    DocumentRoot /var/www/myberry.org
+    ServerAdmin admin@${BerryProxy}
+    ServerName ${BerryProxy}
+    DocumentRoot /var/www/${BerryProxy}
     ErrorLog ${APACHE_LOG_DIR}/error.log
     CustomLog ${APACHE_LOG_DIR}/access.log combined
-    &lt;Directory /var/www/myberry.org/&gt;
+    &lt;Directory /var/www/${BerryProxy}/&gt;
     &lt;/Directory&gt;
 &lt;/VirtualHost&gt;
 </pre>
-	* Now create the root directory for the virtual host: ``/var/www/myberry.org``
-	and a small file within that directory, e.g. ``/var/www/myberry.org/hello.html``
+	* Now create the root directory for the virtual host: ``/var/www/myberry.proxy``
+	and a small file within that directory, e.g. ``/var/www/myberry.proxy/hello.html``
 	* make sure that the root directory and all files inside belong to user www-data
-	and to group www-data: ``chown -R www-data:www-data /var/www/myberry.org``
+	and to group www-data: ``sudo chown -R www-data:www-data /var/www/myberry.proxy``
 
-	* enable the virtual host: ``sudo a2ensite myberry.org.conf``
+	* enable the virtual host: ``sudo a2ensite myberry.proxy.conf``
 	* restart apache: ``sudo systemctl reload apache2``
-	* Open in the browser: ``http://myberry.org:19009/hello.html``
-	
-	Note: the external address of the raspi need not be identical with the name of 
-	your _berry_. Example:
-	
-	.. Your raspi can be reached in the LAN via 192.168.0.88 or as 'rappi.fritz.box'
-	.. Your berry uses port 9009.
-	.. Your proxy is called "myberry.org" and exposes port 19009.
-	.. In your router (Fritz box) you map this port to 20000
-	.. Your router uses a dyndns service called dyndns.org and your account there
-	assigns the subdomain 'lollipop' to you.
-	In that case you can reach your _berry_ via http://lollipo.dyndns.org:20000
+	* Now open the __new port__ of your raspi in the browser and add the "hello.html"
+
+	Example:  
+	.. Your raspi can be reached in the LAN via 192.168.0.88 or as 'my-raspi.fritz.box'  
+	.. So you call http://my-raspi.fritz.box:19009/hello.html  
+	.. Your berry uses port 9009.  
+	.. Your proxy is called "myberry.proxy" and exposes port 19009.  
+	.. In your router (Fritz box) you map 192.168.0.88:19009 to external port 20000  
+	.. We assume that your router uses a dyn DNS service called dyndns.org and your account there
+	assigns the subdomain 'lollipop' to you.  
+	In that case you can reach your _berry_ via http://lollipop.dyndns.org:20000/hello.html  
 	.. With a sophisticated reverse proxy configuration it might even be possible
-	to use https protocol in the web and map it to plain http when talking to the _berry_.
+	to use __https__ protocol in the web and map it to normal __http__ when talking to the _berry_.
 	
 	------
 	
 	* You should now see the contents of the file ``hello.html``. This means that
 	the virtual host is working correctly at port 19009.
 	
-	* Now we can add the proxy rules and the url rewriting rules
-	to the config file. The complete file looks loke this:
+	* Now we can __add the proxy rules and the url rewriting rules__
+	to the config file. The complete file then looks like this:
 
 <pre>
+Define BerryProxy myberry.proxy
 &lt;VirtualHost *:19009&gt;
-    ServerAdmin admin@myberry.org
-    ServerName myberry.org
-    ServerAlias www.myberry.org
-    DocumentRoot /var/www/myberry.org
+    ServerAdmin admin@${BerryProxy}
+    ServerName ${BerryProxy}
+    DocumentRoot /var/www/${BerryProxy}
     ErrorLog ${APACHE_LOG_DIR}/error.log
     CustomLog ${APACHE_LOG_DIR}/access.log combined
     
-    &lt;Directory /var/www/myberry.org/&gt;
+    &lt;Directory /var/www/${BerryProxy}/&gt;
     &lt;/Directory&gt;
     
     RewriteEngine On
@@ -1170,26 +1179,29 @@
 &lt;/VirtualHost&gt;
 </pre>
 
-	* start your berry so that it is listening at port 9009
+	* start your berry so that it is listening at port 9009; use the cmdline option
+	to restrict http request to those which have been forwarded by "myberry.proxy":
+	``./berry MyBerry -f myberry.proxy``
 	
 	* restart apache: ``sudo systemctl reload apache2``
-	* call http://myberry.org:19009 from a DIFFERENT machine, e.g. from 
-	your development PC
+	* call http://my-raspi.fritz.box:19009 from a DIFFERENT machine in the LAN
+	or call http://lollipo.dyndns.org:20000 via a device outside of your LAN
 	* You should see the user interface of your berry
 	
-	* if you call http://myberry.org:19009/hello.html you must get
-	an error now, because the request is forwarded to your _berry_is
+	* if you call http://my-raspi.fritz.box:19009/hello.html you must get
+	an error now, because the request is forwarded to your _berry_
 	regardless whether the file ``hello.html`` exists or not.
 	You can now delete ``hello.html``.
 	
-	* if you try to call the port 9009 directly it will respond with
-	"forbidden"
-
+	* if you try to call the port 9009 directly (from the LAN) it will respond with
+	"forbidden", even when calling it from the raspi itself
+	
+	-----
 	
 	* Now it is up to you to care for the security of the reverse proxy.	
 	Call ``sudo htdigest -c /var/www/.htpasswd -c Berry your_user_name``
 	and enter twice the password for that user. Make sure that the password file can 
-	be read by www-data: ``chmod 644 /var/www/.htpasswd``
+	be read by www-data: ``sudo chmod 644 /var/www/.htpasswd``
 	
 	Then add the following lines to your vhost LOCATION definitions:
 
@@ -1199,6 +1211,42 @@
     AuthUserFile /var/www/.htpasswd
     Require valid-user
 ````
+
+The complete file now looks like this:
+
+<pre>
+Define BerryProxy myberry.proxy
+&lt;VirtualHost *:19009&gt;
+    ServerAdmin admin@${BerryProxy}
+    ServerName ${BerryProxy}
+    DocumentRoot /var/www/${BerryProxy}
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+    
+    &lt;Directory /var/www/${BerryProxy}/&gt;
+    &lt;/Directory&gt;
+    
+    RewriteEngine On
+    RewriteCond %{REQUEST_URI}  ^/socket.io            [NC]
+    RewriteCond %{QUERY_STRING} transport=websocket    [NC]
+    RewriteRule /(.*)           ws://localhost:9009/$1 [P,L]
+
+    ProxyPass        /chat http://localhost:9009
+    ProxyPassReverse /chat http://localhost:9009
+
+    ProxyPass        /socket.io  http://localhost:9009/socket.io
+    ProxyPassReverse /socket.io  http://localhost:9009/socket.io
+
+    &lt;Location /&gt;
+        ProxyPass        http://127.0.0.1:9009/
+        ProxyPassReverse http://127.0.0.1:9009/
+        AuthType Digest
+        AuthName "Berry"
+        AuthUserFile /var/www/.htpasswd
+        Require valid-user
+    &lt;/Location&gt;
+&lt;/VirtualHost&gt;
+</pre>
 
 	When you now call the public address and the port which is mapped by
 	the router (and forwarded by the reverse proxy) then a login window should
