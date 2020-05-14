@@ -6,10 +6,10 @@ class BerryUI {
 	// displays their front panels based on the hardware description
 	// optionally displays a list of all interface elements with their attributes
 	// can connect to a master server which offers a list of available Berry servers
-	
+
 	constructor() {
 		//load socket.io-client and connect to the host that serves the page
-		
+
 		this.version		= "0.9";
 
 		// this should be fetched from the master
@@ -24,11 +24,11 @@ class BerryUI {
 			 9,25,11, 8, 0, 7, 0, 0, 5, 0,
 			 6,12,13, 0,19,16,26,20, 0,21,
 		];
-		
+
 		window.onunload = function() {
 			for (var socket of app.sockets) socket.disconnect();
 		}
-		
+
 		this.registeredServers= [];
 		this.startableServers = [];
 	}
@@ -68,7 +68,7 @@ class BerryUI {
 		// hw identifies the connection to the server
 
 		var my=this;
-		
+
 		var socket=this.sockets[hw];
 
 		socket.on('state', function (jsonMsg) {
@@ -77,30 +77,30 @@ class BerryUI {
 			while(app.sockets[hw]!=this && ++hw<app.sockets.length) ;	// find connection index
 
 			var response = JSON.parse(jsonMsg);
-			
+
 			// handle responses which describe an error that occurred on the server
 			if (response.error) {
 				alert("Server response:\n\n"+response.error);
 				my.connectRetries[hw] = 1;
 				return;
 			}
-			
+
 			// handle the initial setup response (hardware setup)
 			if (response.setup) {
 				var hardware=response.setup;
 
 				// create instance var for the hardware belonging to this connection
-				my.hardwares[hw]=hardware;					
+				my.hardwares[hw]=hardware;
 
 				// draw the front panel of the hardware
 				my.drawPanel(hw,response);
 
 				// set browser tab title
 				$("title").html(hardware.type+": "+hardware.name);
-				
+
 				// set title
 				if (hw==0) $("#title").html(hardware.title);
-				
+
 				my.connectRetries[hw] = 1;
 				return;
 			}
@@ -184,14 +184,14 @@ class BerryUI {
 		socket.on('registeredServers', function (jsonMsg) {
 			// list of other servers
 			my.updateRegisteredServers(jsonMsg);
-		});			
+		});
 
 		// handle a message containing a list of servers
 		// which could be started by the Master
 		socket.on('startableServers', function (jsonMsg) {
 			// list of local startable servers
 			my.updateStartableServers(jsonMsg);
-		});			
+		});
 
 		// handle connection errors (including timeout)
 		socket.on('error', function (msg) {
@@ -201,10 +201,10 @@ class BerryUI {
 			if (my.connectRetries[hw] > 0) {
 				my.notify("reconnected to "+this.io.uri);
 				my.connectRetries[hw] = 1;
-				setTimeout(function() { 
-					location.reload(true); 
+				setTimeout(function() {
+					location.reload(true);
 				},1000 );
-			}		
+			}
 			my.connectRetries[hw]=1;	// make sure that we reload on next reconnect
 		});
 		socket.on('connect_error', function (msg) {
@@ -218,7 +218,7 @@ class BerryUI {
 		});
 
 	}
-	
+
 	updateRegisteredServers(jsonMsg) {
 		$("#servers").html("");
 		var servers = JSON.parse(jsonMsg);
@@ -231,7 +231,7 @@ class BerryUI {
 					$("#servers").append(
 						"<a title='"+serverAddress+"' target='Master' href='"+location.protocol+"//"+location.hostname+":"+server.port+"'>Master</a><br/>"
 					);
-				}				
+				}
 			}
 			else {
 				$("#servers").append(
@@ -243,9 +243,9 @@ class BerryUI {
 			}
 			app.registeredServers[server.type] = server;
 		}
-		
+
 	}
-	
+
 	updateStartableServers(jsonMsg) {
 		// if we are the master: create buttons to start Berry applications
 
@@ -258,14 +258,14 @@ class BerryUI {
 				if (type=="Master") continue;
 				if (app.registeredServers[type]) {
 					// server is already active
-					var server=app.registeredServers[type];					
+					var server=app.registeredServers[type];
 					html+="<a target='"+type+"' href='"+location.protocol+"//"+location.hostname+":"+server.port+"'>OPEN</a> &nbsp; ";
 					html+= "<i>"+type+"</i> <b>"+server.name+"</b> &nbsp; [ "+server.ip+" : "+server.port+" ] ";
 					html+="<span style='color:green'>running since "+new Date(server.createdAt).toLocaleString()+"</span> &nbsp; ";
 					html+= "<div style='margin-top:5px;margin-left:100px;'>"+server.title+"</div><hr/>";
 				}
 				else {
-					var server=app.startableServers[type];					
+					var server=app.startableServers[type];
 					html+="<button onclick='app.startServer(\""+type+"\");'>start</button> &nbsp; ";
 					html+= "<i>"+type+"</i> <b>"+server.name+"</b> &nbsp; [ "+server.port+" ]";
 					html+= "<div style='margin-top:5px;margin-left:100px;'>"+server.title+"</div><hr/>";
@@ -275,16 +275,16 @@ class BerryUI {
 			$('#manager').html(html);
 		}
 	}
-	
+
 	startServer(type) {
 		var server = app.startableServers[type];
 		app.sendAction(0,{elm:"server",cmd:"start",type:type,name:server.name});
 	}
-	
+
 	createPanel(hw) {
 		// display the virtual front panel for the hardware of a given server
 		// hw identifies the connection to the server
-		
+
 		var html=`
 			<div id="hwimg_`+hw+`" style="float:right;display:inline-block;vertical-align:top;"></div>
 			<div id="hw_`+hw+`" class="FrontPanel">
@@ -300,7 +300,7 @@ class BerryUI {
 		`;
 		$("#hardwares").append(html);
 	}
-	
+
 	dropPanel(hw) {
 		// remove the virtual front panel for the hardware of a given server
 		// hw identifies the connection to the server
@@ -308,13 +308,13 @@ class BerryUI {
 		$("#hw_"+hw).remove();
 		$("#hwimg_"+hw).remove();
 	}
-	
+
 	drawPanel(hw,response) {
 		// initially all panels are hidden; now show the panel for the current connection
 		$("#hw_"+hw).show();
 
 		var hardware=response.setup;
-		
+
 		// show the front panel elements belonging to the current type of hardware
 		$("#hw_"+hw+" .ui_"+hardware.type).css("display","");
 
@@ -322,10 +322,10 @@ class BerryUI {
 		if (hardware.img) {
 			$("#hwimg_"+hw).html("<img style='vertical-align:top;max-height:300px;max-width:300px' src='app/"+hardware.type+"/img/"+hardware.img+"'></img>");
 		}
-		
+
 		var d=new Date(hardware.creationTime);
-		var date = 
-			// ("0" + d.getDate()).slice(-2) + "-" + ("0"+(d.getMonth()+1)).slice(-2) + "-" + d.getFullYear() + " " + 
+		var date =
+			// ("0" + d.getDate()).slice(-2) + "-" + ("0"+(d.getMonth()+1)).slice(-2) + "-" + d.getFullYear() + " " +
 			("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2)
 		;
 
@@ -356,8 +356,8 @@ class BerryUI {
 			"<button title='show/hide details on this Berry Application' onclick='$(\"#hardwareDetails_"+hw+"\").toggle();'><i>"+hardware.type+"</i></button> &nbsp; "+
 			"<b>"+hardware.name+"</b> &nbsp; "+
 			( hw && app.hardwares[0].type!="Master" ?
-					"<button title='disconnect' onclick='app.removeServer("+hw+");'>x</button>&nbsp;" 
-					: 
+					"<button title='disconnect' onclick='app.removeServer("+hw+");'>x</button>&nbsp;"
+					:
 					controlButtons1+
 					"<a title='get help on the API and use it in a separate browser tab' target='api' "+
 					"style='color:green;text-decoration:none;font-weight:700;' href='/api?elm:api,cmd:help'>API</a>&nbsp;|&nbsp;"+
@@ -371,7 +371,7 @@ class BerryUI {
 			(hw==0 ? location.hostname+":"+location.port : app.servers[hw])+
 			"&nbsp; &nbsp; "+date+" &nbsp;"
 		);
-		
+
 		// description
 		$("#hardwareDesc_"+hw).html(
 			hardware.desc+"<p/>"+
@@ -379,9 +379,9 @@ class BerryUI {
 			"server: "+hardware.version+" &nbsp; &nbsp; "+
 			"client: "+this.version+"<br/>"
 		);
-		
+
 		// Interface (pins / gpios)
-		
+
 		var pih="<img style='float:right;margin-left:10px;' src='img/pinout.png'/><table class='iface'>";	// pin layout html
 		pih+="<tr><th>Device</th><th>Signal</th><th>Pin</th><th>Pin</th><th>Signal</th><th>Device</th></tr>";
 		var color;
@@ -398,7 +398,7 @@ class BerryUI {
 				if (typeof elm.gpios!="undefined" && elm.gpios.includes(app.gpios[pp])) {
 					if (elm.cable) cable="<br/>"+elm.cable;
 					if (elm.direction=="in") color="green";
-					break; 
+					break;
 				}
 			}
 			if (ppin.type) 	pih+="<span style='color:"+color+"'><b>"+ppin.type+"</b></span> : "+ppin.name;
@@ -419,11 +419,11 @@ class BerryUI {
 			if (pp==28) pih+="<tr><td colspan='6'><hr/></td></tr>";
 		}
 		pih+="</table>";
-		$("#hardwareIface_"+hw).append(pih);		
-		
-		
+		$("#hardwareIface_"+hw).append(pih);
+
+
 		// hardware elements (list) and panel ==========================================================
-		
+
 		for(var elm of Object.values(hardware.elms)) {
 
 			var showElm = JSON.parse(JSON.stringify(elm));	// deep copy
@@ -465,15 +465,15 @@ class BerryUI {
 			$("#hardwareSetup_"+hw).append(api);
 
 
-			
+
 			// produce visual representation of the element on the front panel
 
 			var it="";	// hardware item html
-			
+
 			if 		(elm.type=="Action") {
 				if (elm.options.length==1) {
 					var value = elm.options[0].value;
-					if (!value) value = elm.options[0]; 
+					if (!value) value = elm.options[0];
 					// Action without alternatives, create a single button
 					it=	"<button id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style=\""
 						+elm.style+"\" onclick='app.sendAction("+hw+",{elm:\""+elm.id+"\",value:\""+value+"\"});'>"+value+"</button>";
@@ -485,7 +485,7 @@ class BerryUI {
 						if (typeof opt == "string") opts+= "<option>"+opt+"</option>";
 						else  if (opt.text) opts+="<option value='"+opt.value+"'>"+opt.text+"</option>";
 						else  opts+="<option>"+opt.value+"</option>";
-						
+
 					}
 					it=	"<select id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style=\""
 						+elm.style+"\""+" onmouseup='var open=$(this).data(\"isopen\"); if(open) { app.sendAction("
@@ -502,8 +502,16 @@ class BerryUI {
 			else if (elm.type=="Button") {
 				if (elm.color) elm.style+=";background-color:"+elm.color+";";
 				// we have a button which will be handled individually by the application
-				var handles = "";					
-				if (elm.pressed				) handles += "' onclick='app.sendAction("+hw+",{elm:\""+elm.id+"\",state:\"pressed\"});'";
+				var handles = "";
+				if (elm.pressed				) {
+					if (elm.refresh) {
+						handles += "' onclick='app.sendAction("+hw+",{elm:\""+elm.id+"\",state:\"pressed\"});"+
+									"app.refreshBgImg(\"#hw_"+hw+"_"+elm.id+"\","+elm.refresh+");'";
+					}
+					else {
+						handles += "' onclick='app.sendAction("+hw+",{elm:\""+elm.id+"\",state:\"pressed\"});'";
+					}
+				}
 				if (elm.down || elm.downUp	) handles += " onmousedown='app.sendAction("+hw+",{elm:\""+elm.id+"\",state:\"down\"});'";
 				if (elm.up || elm.downUp	) handles += " onmouseup='app.sendAction("+hw+",{elm:\""+elm.id+"\",state:\"up\"});'";
 				it=	"<button id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style=\""
@@ -555,7 +563,7 @@ class BerryUI {
 					</div>
 					<div class="MPU6500_bg">
 						<div style="width:100px;height:100px;perspective:600px;perspective-origin:50% 50%;">
-							<x-model class="MPU6500_model" src="app/Sword/img/`+elm.image3d+`" 
+							<x-model class="MPU6500_model" src="app/Sword/img/`+elm.image3d+`"
 							style="width:80%;height:80%;margin:10%;border:2px solid #fbb;"></x-model>
 						</div>
 					</div>
@@ -578,12 +586,12 @@ class BerryUI {
 
 			else if (elm.type=="Speakers") {
 				it="	<div id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style=\""+elm.style+"\">"+elm.name+"🔊</div>";
-			}		
+			}
 
 			else if (elm.type=="Task") {
 				// tasks are not shown in the client
 				it="";
-			}		
+			}
 
 			else if (elm.type=="TextInput") {
 				it="<div id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style=\""+elm.style+"\">"
@@ -595,9 +603,9 @@ class BerryUI {
 				it+="	<div style='position:relative'>";
 				// it+="		<div style='position:absolute;left:-90px;top:20px;background:#e7e7e7;border:dashed 1px black;width:88px;height:30px;'></div>";
 				// it+="		<div style='position:absolute;left:40px;display:inline-block;background:#e7e7e7;border:dashed 1px lightgray;width:"+(elm.numLEDs/2*31+50)+"'>";
-							
+
 				var top=0, sx = elm.shape.spaceX, sy = elm.shape.spaceY, sy2 = Math.ceil(sy/2), dx = elm.shape.dimX, dy=elm.shape.dimY;
-				
+
 				if (elm.shape.layout=="rect") {
 					// a rectangular frame
 					var left= dy>0 ? sx : 0;
@@ -641,7 +649,7 @@ class BerryUI {
 			}
 
 			$("#hardware_"+hw).append(it);
-			
+
 		}
 
 		$("#hardwareSetup_"+hw).append("<h2>API for hardware, server, app / berry, api</h2>");
@@ -657,6 +665,16 @@ class BerryUI {
 
 	}
 
+	refreshBgImg(tag,delay) {
+		setTimeout(
+			function() {
+				$(tag).css("background-image",$(tag).css("background-image").replace(/[?][0-9]+/,"?"+Math.random()));
+			},
+			delay
+		);
+
+	}
+
 	sendAction(hw,obj) {
 		// serialize an object and send it as an 'action' to a given server
 		app.sockets[hw].emit('action',JSON.stringify(obj));
@@ -666,7 +684,7 @@ class BerryUI {
 		var value=$("#hw_"+hw+"_"+id+" textarea").val();
 		app.sendAction(hw,{elm:id,value:value});
 	}
-	
+
 	sendRotation(hw,id,axis,val) {
 		var elm=app.hardwares[hw].elms[id];
 		elm.rot[axis]=parseInt(val);
@@ -681,7 +699,7 @@ class BerryUI {
 		var elm=app.hardwares[hw].elms[id];
 		elm.rot[0]= (val[0]+360) % 360;
 		elm.rot[1]= (val[1]+360) % 360;
-		elm.rot[2]= (val[2]+360) % 360;		
+		elm.rot[2]= (val[2]+360) % 360;
 		var x = (elm.rot[0] + elm.orientation[0]) % 360;
 		var y = (elm.rot[1] + elm.orientation[1]) % 360;
 		var z = (elm.rot[2] + elm.orientation[2]) % 360;
@@ -690,7 +708,7 @@ class BerryUI {
 		$("#hw_"+hw+"_"+id+" .rotZ").val(z);
 		$("#hw_"+hw+"_"+id+" .MPU6500_model").css({ transform:"rotateX("+x+"deg) rotateY("+y+"deg) rotateZ("+z+"deg)" });
 	}
-	
+
 	api(hw,id,cmd) {
 		var url=app.servers[hw]+"/api?elm:"+id+",cmd:"+cmd;
 		if (app.apiWindow) {
@@ -698,16 +716,16 @@ class BerryUI {
 		}
 		else {
 			app.apiWindow=window.open(url,"_blank");
-		} 
+		}
 		app.apiWindow.focus();
 	}
-	
+
 	ledAdjust(val) {
 		// adjust the perceived brightness of a LED
 		if (val==0) return 0;
 		return 80+Math.round(val/1.75);
 	}
-		
+
 
 	buttonClicked(event) {
 		// send button press command to server
@@ -716,20 +734,20 @@ class BerryUI {
 		var deviceId = tokens[2];
 		this.sendAction(hw,{button:deviceId,state:'pressed'});
 	}
-	
+
 	notify(msg) {
 		// display an alert message to the user for three seconds
 		$("#alert").append(msg+"<br/>").show();
 		setTimeout(function() {$("#alert").html("").hide();},3000);
 	}
-	
+
 	readme() {
 		// show the Berry README.MD file in a separate browser tab
 		if (app.readmeWindow) app.readmeWindow.url("readme.html");
 		else app.readMeWindow=window.open("readme.html","readme");
 		app.readmeWindow.focus();
 	}
-	
+
 	convertMarkDown(tagSpec) {
 		// take the current HTML contents for each element of the tag spec
 		// eliminate leading tabs and interpret the text as MarkDown syntax
@@ -743,7 +761,7 @@ class BerryUI {
 			elm.innerHTML=result;
 		});
 	}
-	
+
 }
 
 var audioCtx = null;	// audio Context (Web Audio)
@@ -752,7 +770,7 @@ class MorseSnd {
 
 	constructor() {
 		if (!audioCtx) return;		// audio context must have been created
-		
+
 		// create web audio api context
 
 		// create gain
@@ -765,9 +783,9 @@ class MorseSnd {
 		this.oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // value in hertz
 		this.oscillator.connect(this.gain);
 	}
-	
+
 	play(text) {
-		if (!audioCtx) return;		// audio context must have been created	
+		if (!audioCtx) return;		// audio context must have been created
 		this.oscillator.start();
 		this.morse(text,0,130);
 	}
@@ -793,7 +811,7 @@ class MorseSnd {
 }
 
 var app;
-window.addEventListener("load", function() { 
-	app = new BerryUI(); 
-	app.addServer(""); 
+window.addEventListener("load", function() {
+	app = new BerryUI();
+	app.addServer("");
 });

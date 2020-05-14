@@ -1183,6 +1183,8 @@ Define BerryProxy myberry.proxy
 	to restrict http request to those which have been forwarded by "myberry.proxy":
 	``./berry MyBerry -f myberry.proxy``
 	
+	* you must also change your crontab entry and add ``-f myberry.proxy`` there, too.
+	
 	* restart apache: ``sudo systemctl reload apache2``
 	* call http://my-raspi.fritz.box:19009 from a DIFFERENT machine in the LAN
 	or call http://lollipo.dyndns.org:20000 via a device outside of your LAN

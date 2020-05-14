@@ -32,36 +32,36 @@ class Speakers extends Device {
 		const fs = require('fs');
 		const util = require('util');
 		const client = new (require('@google-cloud/text-to-speech').TextToSpeechClient)();
-		const request = { 
-			input: { text: text }, 
-			voice: { 
-				languageCode: 'de-DE', 
-				ssmlGender: 'FEMALE', 
-				name: 'de-DE-Wavenet-'+["A","B","C","D","E"][Math.floor(Math.random()*5)], 
-			}, 
-			audioConfig: { 
-				audioEncoding: 'MP3' 
-			}, 
-		}; 
+		const request = {
+			input: { text: text },
+			voice: {
+				languageCode: 'de-DE',
+				ssmlGender: 'FEMALE',
+				name: 'de-DE-Wavenet-'+["A","B","C","D","E"][Math.floor(Math.random()*5)],
+			},
+			audioConfig: {
+				audioEncoding: 'MP3'
+			},
+		};
 		var that=this;
-		(async () => { 
-			const [response] = await client.synthesizeSpeech(request); 
-			const writeFile = util.promisify(fs.writeFile); 
-			await writeFile(that.appType+"/audio/google-speech.mp3", response.audioContent, 'binary'); 
+		(async () => {
+			const [response] = await client.synthesizeSpeech(request);
+			const writeFile = util.promisify(fs.writeFile);
+			await writeFile(that.appType+"/audio/google-speech.mp3", response.audioContent, 'binary');
 		})();
 		setTimeout(function() {
 			that.play("google-speech.mp3");
 		},1500
 		);
 	}
-	
+
 	play(arg) {
 		// play the given file (wav format)
 		// if there is already a file being played the request will be ignored.
 		// if fileName contains commas, it gets split along the commas and a random element will be played
-		
+
 		var fileName = (typeof arg=="string") ? arg : arg.file;
-		
+
 		if (this.fileName!="--") {
 			if (this.watcher) this.watcher(0,this,"Speakers","already playing .. "+this.fileName);
 			return false;
@@ -74,25 +74,25 @@ class Speakers extends Device {
 		if (this.fileName.indexOf(",")>0) {
 			var names = fileName.split(",");
 			this.fileName = names[Math.floor(Math.random()*names.length)];
-		}	
+		}
 		if (process.platform === "win32") {
 			Logger.log("Speakers     playing (Windows): "+this.fileName+" ..");
 			if (this.fileName.toLowerCase().endsWith(".mp3")) {
-				var childProc = require('child_process'); 
+				var childProc = require('child_process');
 				try {
 					childProc.spawn('.\\node_modules\\berry-frame\\bin\\mpg123',
 							["./"+this.appType+"/audio/"+this.fileName], {stdio:"inherit"}
 					);
 					// we should change this only after the sub process has terminated.
 					var that=this;
-					setTimeout(function() { 
-						that.fileName="--"; 
+					setTimeout(function() {
+						that.fileName="--";
 						if (that.watcher) that.watcher(0,that,"Speakers",that.fileName);
 					},5000);
 				}
 				catch(e) {
 					console.log(e);
-				}					
+				}
 			}
 			else if (this.fileName.toLowerCase().endsWith(".wav")) {
 				var player = require('node-wav-player');
@@ -115,7 +115,7 @@ class Speakers extends Device {
 		else {
 			// on Raspberry
 			if (this.fileName.toLowerCase().endsWith(".mp3")) {
-				var childProc = require('child_process'); 
+				var childProc = require('child_process');
 				try {
 					var args = ["./"+this.appType+"/audio/"+this.fileName];
 					if (this.devName!="") { args.unshift(this.devName); args.unshift("-a");  }
@@ -123,14 +123,14 @@ class Speakers extends Device {
 					childProc.spawn('mpg123', args);
 					// we should change this only after the sub process has terminated.
 					var that=this;
-					setTimeout(function() { 
-						that.fileName="--"; 
+					setTimeout(function() {
+						that.fileName="--";
 						if (that.watcher) that.watcher(0,that,"Speakers",that.fileName);
 					},5000);
 				}
 				catch(e) {
 					console.log(e);
-				}					
+				}
 			}
 			else if (this.fileName.toLowerCase().endsWith(".wav")) {
 				const Sound	= require('node-aplay');
@@ -167,20 +167,20 @@ class Speakers extends Device {
 	playMorse(code,unit) {
 		unit = unit || 150;
 		Logger.log("Speakers     playing Morse ("+unit+"): "+code);
-		new MorseSnd().play(code,unit);		
+		new MorseSnd().play(code,unit);
 		if (this.watcher) {
 			this.watcher(0,this,"Speakers",{morse:code,unit:unit});
 		}
 	}
-	
+
 	getValue() {
 		return this.fileName;
 	}
-	
+
 	onChanged(watcher) {
 		this.watcher = watcher;
 	}
-	
+
 	release() {
 	}
 }
@@ -216,6 +216,8 @@ Speakers.getApiDescription = function() {
 var audioCtx=false;
 if (process.platform != "win32") {
 	try {
+		// note that the following statements will block an USB audio resource
+		// for requests to be performed by "aplay" via Speakers.say() or Speakers.play()
 		const Speaker = require('speaker');
 		const AudioContext = require("web-audio-engine").StreamAudioContext;
 		audioCtx = new AudioContext();
@@ -232,9 +234,9 @@ class MorseSnd {
 
 	constructor() {
 		// server-side audioCtx is only available on the Raspi
-		
+
 		if (!audioCtx) return;		// audio context must have been created
-		
+
 		// create gain
 		this.gain		= audioCtx.createGain();
 		this.gain.connect(audioCtx.destination);
@@ -245,9 +247,9 @@ class MorseSnd {
 		this.oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // value in hertz
 		this.oscillator.connect(this.gain);
 	}
-	
+
 	play(text) {
-		if (!audioCtx) return;		// audio context must have been created	
+		if (!audioCtx) return;		// audio context must have been created
 		this.oscillator.start();
 		this.morse(text,0,130);
 	}

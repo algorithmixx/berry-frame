@@ -10,43 +10,43 @@ var 	Gpio; // GPIO lib (or emulation)
 class Device {
 
 	// This abstract class represents a generic device which is connected to a gpio.
-	
+
 	constructor(id,name,gpios,emulate) {
 		this.id			= id;
 		this.name		= name;
 		this.gpios		= gpios;
 		this.protocol	= "on/off";
-		this.emulate	= emulate;		
+		this.emulate	= emulate;
 		this.dev		= null;
 	}
-	
+
 	monitor(func,arg,interval) {
 		setInterval(function() { func(arg); }, interval);
 	}
-	
+
 	onChanged(watcher) {
 		// define a method to be called whenever the state of the device changes
 		this.watcher=watcher;
 	}
-	
+
 	getValue() {
 		// must be overridden in derived classes
 		return "?";
 	}
-	
+
 	toString() {
 		return this.constructor.name+" "+this.name+" "+JSON.stringify(this.gpios);
 	}
-	
+
 	release() {
 		// to be overwritten in subclass if necessary
 		// Logger.info("Device       releasing "+this.toString());
 	}
-		
+
 }
 
 Device.action = {
-	type: "object", 
+	type: "object",
 	properties: {
 		elm: {
 			anyOf: [
@@ -85,11 +85,11 @@ Device.actionStrict.additionalProperties=false;
 
 class Label extends Device {
 	// a text label, typically sitting somewhere on the hardware front panel
-	
+
 	constructor(id,name) {
 		super(id,name,[],false);
 		this.protocol="";
-	}	
+	}
 }
 
 Label.schema = {
@@ -104,7 +104,7 @@ Label.getApiDescription = function() {
 
 class Display extends Device {
 	// a text display, sitting somewhere on the hardware front panel
-	
+
 	constructor(id,name,xDim,yDim) {
 		super(id,name,[],false);
 		this.xDim		= xDim;
@@ -129,15 +129,15 @@ class Display extends Device {
 		}
 		if (this.watcher) this.watcher(0,this,"Display",this.contents);
 	}
-	
+
 	getValue() {
 		return this.contents;
 	}
-	
+
 	setValue(val) {
 		this.println(""+val);
 	}
-	
+
 }
 
 Display.schema = {
@@ -149,7 +149,7 @@ Display.schema = {
 	},
 }
 
-Display.getApiDescription = function () {	
+Display.getApiDescription = function () {
 	return [
 		{	cmd:"getValue",
 			effect:"returns the current contents of the display (array of text lines)"
@@ -168,7 +168,7 @@ Display.getApiDescription = function () {
 
 class TextInput extends Device {
 	// a text input area, sitting somewhere on the hardware front panel
-	
+
 	constructor(id,name,cols,rows) {
 		super(id,name,[],false);
 		this.cols		= cols;
@@ -187,17 +187,17 @@ class TextInput extends Device {
 	getValue() {
 		return this.contents;
 	}
-	
+
 	setValue(val) {
 		Logger.log("TextInput    "+text);
 		this.contents=val;
 		if (this.watcher) this.watcher(0,this,"TextInput",this.contents);
 	}
-	
+
 }
 
 TextInput.schema = {
-	description: "A (virtual) rectangular text input area, usable in the WEB UI",	
+	description: "A (virtual) rectangular text input area, usable in the WEB UI",
 	definitions: {
 		action: 	Device.actionStrict,
 		actions: {
@@ -214,7 +214,7 @@ TextInput.schema = {
 	}
 }
 
-TextInput.getApiDescription = function () {	
+TextInput.getApiDescription = function () {
 	return [
 		{	cmd:	"setValue",
 			effect:	"simulates a text input",
@@ -231,7 +231,7 @@ TextInput.getApiDescription = function () {
 class IODevice extends Device {
 
 	// This abstract class represents a generic device which is connected to a single gpio.
-	
+
 	constructor(id,name,gpio,direction,emulate) {
 		// expects the (output) gpio (BCM notation) for the device
 
@@ -251,16 +251,16 @@ class IODevice extends Device {
 
 		this.dev = new Gpio(gpio, direction);
 	}
-	
+
 	release() {
 		Logger.info("Device       releasing "+this.toString());
 		if (this.dev) this.dev.unexport();
 	}
-	
+
 	getValue() {
 		return this.dev ? this.dev.readSync() : -1;
 	}
-		
+
 	isOn() {
 		return this.dev.readSync()===Gpio.HIGH;
 	}
@@ -268,13 +268,13 @@ class IODevice extends Device {
 	isOff() {
 		return this.dev.readSync()==Gpio.LOW;
 	}
-	
+
 	onChanged(watcher,useInterrupts) {
 		// define a method to be called whenever the signal changes
 
 		this.watcher=watcher;
 		if (!useInterrupts || !this.dev) return;
-		
+
 		var that=this;
 		this.dev.watch(function(err,value,gpio) {
 			if (err) { Logger.error("gpio watching "+that.gpio); return; }
@@ -286,7 +286,7 @@ class IODevice extends Device {
 	toString() {
 		return this.constructor.name+" "+this.name+" "+this.gpio+" "+this.direction;
 	}
-	
+
 }
 
 // =========================================================================================================
@@ -294,11 +294,11 @@ class IODevice extends Device {
 class InputDevice extends IODevice {
 
 	// This abstract class represents a generic input device which is connected to a gpio.
-	
+
 	constructor(id,name,gpio,emulate) {
-		super(id,name,gpio,"in",emulate);		
+		super(id,name,gpio,"in",emulate);
 	}
-	
+
 }
 
 // =========================================================================================================
@@ -307,11 +307,11 @@ class Button extends InputDevice {
 
 	// This class represents a physical on-off-button connected to a gpio.
 	// it uses the gpio utility (wiringPi) to configure the gpio as input with a pullup resistor.
-	
+
 	constructor(id,name,gpio,debounce,direction,emulate) {
-		// create a debounce-protected button 
+		// create a debounce-protected button
 		// Only rising edges will trigger an interrupt
-		
+
 		super(id,name,gpio,emulate);
 		// we need to substitute the gpio by a new definition
 		// so that we can add the debounce time
@@ -324,7 +324,7 @@ class Button extends InputDevice {
 			this.dev = new Gpio(gpio,"in","both",{debounceTimeout:debounce,activeLow:true});
 		}
 	}
-		
+
 	press(state) {
 		// simulate a button event
 		if (this.watcher) this.watcher(0,this,"Button",state=="down" ? 1 : (state=="up" ? 0 : 2));
@@ -350,10 +350,11 @@ Button.schema = {
 		downUp:		{ $ref: "#/definitions/actions" },
 		up:			{ $ref: "#/definitions/actions" },
 		pressed:	{ $ref: "#/definitions/actions" },
+		refresh:    { type: "integer", description: "force background-img refresh after xx msecs"},
 	},
 }
 
-Button.getApiDescription = function () {	
+Button.getApiDescription = function () {
 	return [
 		{	cmd:"press",
 			effect:"simulates a button down, up or press action",
@@ -376,11 +377,11 @@ class OutputDevice extends IODevice {
 
 	// This abstract class represents a generic output device which is connected to a gpio.
 	// It offers methods to switch the device on and off and to toggle it.
-	
+
 	constructor(id,name,gpio,emulate) {
 		super(id,name,gpio,"out",emulate);
 	}
-		
+
 	setValue(value) {
 		if (this.dev) {
 			try {
@@ -394,20 +395,20 @@ class OutputDevice extends IODevice {
 		}
 		if (this.watcher) this.watcher(0,this,this.constructor.name,value);
 	}
-	
+
 	on() {
 		this.setValue(Gpio.HIGH);
 	}
-		
+
 	off() {
 		this.setValue(Gpio.LOW);
 	}
-	
+
 	toggle() {
 		if (this.isOn()) this.off();
 		else			 this.on ();
 	}
-	
+
 	release() {
 		this.off();
 		super.release();
@@ -420,7 +421,7 @@ class LED extends OutputDevice {
 
 	// This class represents a LED which is connected to a gpio
 	// It offers methods for blinking.
-	
+
 	constructor(id,name,color,gpio,emulate) {
 		// expects the (output) gpio# (BCM notation) for the LED
 		super(id,name,gpio,emulate);
@@ -429,12 +430,12 @@ class LED extends OutputDevice {
 		this.stopTimer= 		null;
 		this.remainingCycles = 	0;
 	}
-	
+
 	blink(args,finished) {
 		// blink in a constant rhythm (_interval_) for some time (_duration_)
 		// or for a given number of _cycles_
 
-		
+
 		var interval= args && args.interval ? args.interval	:	500;
 		var	ratio	= args && args.ratio	? args.ratio	: 	50;
 		var	duration= args && args.duration ? args.duration	:	0;
@@ -447,17 +448,17 @@ class LED extends OutputDevice {
 			if (isPresent(finished) && finished) finished(this,-1);
 			return;
 		}
-		
+
 		// store args
 		this.remainingCycles=	duration>0 ? 0 : cycles;
 		this.finished=			finished;
 		this.interval=			interval;
 		this.ratio=				ratio;
-		
+
 		// start toggling, count steps (a step is half a cycle)
 		this.step=0;
 		this.toggleAfterDelay(this,true);
-		
+
 		// end blinking after duration if specified, regardless of cycles
 		if (duration>0) {
 			var that=this;
@@ -467,11 +468,11 @@ class LED extends OutputDevice {
 
 	toggleAfterDelay(that,init) {
 		// Trigger the next port switch at the correct moment in time.
-		// Note that using a Javascript interval timer would not be very precise; 
+		// Note that using a Javascript interval timer would not be very precise;
 		// depending on CPU speed we would see 2..15% delay after some cycles.
 		// Instead we set up a new timer each time to meet the next multiple of our interval
 		// as closely as possible
-		
+
 		var delay = that.step * that.interval + that.blinkStartedAt - new Date().getTime();
 		if (that.step%2==1) delay*=(1+(that.ratio-50)*0.02);
 		that.step++;
@@ -500,12 +501,12 @@ class LED extends OutputDevice {
 			init ? 0: delay
 		);
 	}
-	
+
 	stop(that) {
 		// stop the current blinking process, clear timers
 
 		var now=new Date().getTime(); // note current time
-		
+
 		// reset stopTimer (it may have been scheduled for a later point in time during start of blinking)
 		if (that.stopTimer) clearTimeout(that.stopTimer);
 		that.stopTimer=null;
@@ -513,19 +514,19 @@ class LED extends OutputDevice {
 		// actually stop blinking, kill runTimer
 		clearTimeout(that.runTimer);
 		that.runTimer=null;
-		
+
 		// invoke finished callback
 		if (isPresent(that.finished) && typeof that.finished=="function") that.finished(that,now-that.blinkStartedAt);
 		that.blinkStartedAt=0;
 	}
-	
+
 }
 
 LED.schema = {
 	description: "A light emitting diode connected to a GPIO (configured as output)",
 }
 
-LED.getApiDescription = function () {	
+LED.getApiDescription = function () {
 	return [
 		{	cmd:"blink",
 			args:[
