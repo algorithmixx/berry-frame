@@ -668,7 +668,7 @@ class BerryUI {
 	refreshBgImg(tag,delay) {
 		setTimeout(
 			function() {
-				$(tag).css("background-image",$(tag).css("background-image").replace(/[?][0-9]+/,"?"+Math.random()));
+				$(tag).css("background-image",$(tag).css("background-image").replace(/[?][0-9.]+/,"?"+Math.random()));
 			},
 			delay
 		);
