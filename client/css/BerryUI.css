@@ -83,12 +83,15 @@ div.LED {
 
 div.Display {
 	position:			absolute;
-	border:				solid 1px gray;
+	border:				solid 2px gray;
 	padding:			3px;
-	border:				gray solid 2px;
 	background-color:	#f7f7f7;
 	font-family:		monospace;
 	white-space:		pre;
+}
+
+img.Image {
+	position:			absolute;
 }
 
 div.TextInput {
@@ -101,7 +104,7 @@ div.WS2801 {
 	position:			absolute;
 	display:			inline-block;
 	vertical-align:		middle;
-	text-align:			center;			
+	text-align:			center;
 }
 
 div.WS2801_led {

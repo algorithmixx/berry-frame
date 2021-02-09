@@ -663,6 +663,9 @@ class Server {
 
 		var my=theServer;
 
+		// store host name (from client´s perspective)
+		my.hostname=socket.handshake.headers.host.replace(/:.*/,'');
+
 		if (Logger.level>=2) Logger.log("Server       SOCKET sending hardware setup: "+JSON.stringify(theHardware.getSetupJson(),null,4));
 		socket.emit('state',JSON.stringify(theHardware.getSetupJson()));
 
@@ -683,6 +686,10 @@ class Server {
 			socket.emit('registeredServers',JSON.stringify(my.registrations));
 			socket.emit('startableServers',JSON.stringify(my.startableServers));
 		}
+
+		// notify application
+		if (theHardware.appObject && theHardware.appObject.onClientConnect) theHardware.appObject.onClientConnect(socket,my.hostname);
+
 	}
 
 	sendError(socket,msg) {
@@ -693,7 +700,7 @@ class Server {
 	}
 
 	sendResponse(socket,response) {
-		// transmit a single message to a singel socket client,
+		// transmit a single message to a single socket client,
 		// typically as a response to a request of that client
 		var msg=JSON.stringify({states:[response]});
 		Logger.log("Server       SOCKET response "+msg);
@@ -727,7 +734,9 @@ class Server {
 		catch(e) {
 			Logger.error(e,request.url);
 		}
-		if (uri=="" || uri=="/") uri= "/index.html"; // empty URI -> index.html
+		if (uri=="" || uri=="/") {
+			uri= "/index.html"; // empty URI -> index.html
+		}
 
 		// if the uri starts with "/reg?" it is interpreted as a registration request
 		if (my.type=="Master" && uri.substr(0,5)=="/reg?") {
@@ -773,6 +782,15 @@ class Server {
 		file = file.replace(/[?].*/,''); // ignore ?...." in URI
 		Logger.log("Server       HTTP request from "+ip+"  url="+uri+"  file="+file);
 
+		/*
+		if (my.fs.lstatSync(file).isDirectory()) {
+			response.writeHead(200, {'Content-Type': 'text/html'});
+			var data="directory ...";
+			response.write(data);
+			return response.end();
+		}
+		*/
+		
 		// deliver a file from the baseDir
 		my.fs.readFile(file, function(error, data) {
 			if (error) {

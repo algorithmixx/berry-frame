@@ -27,7 +27,7 @@ class BerryFrame {
 		// get current script name
 
 		this.scriptName	 = process.argv[1].replace(/.*[/\\]/,'').replace(/[.]js$/,'');
-		this.versionId	 = "1.3.5";
+		this.versionId	 = "1.3.6";
 
 		// find known Berry types and their default properties (description, port, rev, ..)
 		this.berryTypes = this.findBerryTypes();
@@ -291,9 +291,8 @@ class BerryFrame {
 			this.download(url,zipFile,function() {
 				Logger.info("BerryFrame   downloaded "+zipFile);
 				if (process.platform=="win32") {
-					const Zip = require('node-7z-forall');
-					var archive = new Zip();
-					archive.extractFull(zipFile,".").then(function() {
+					const archive = require('7zip-min');
+					archive.unpack(zipFile,".", err => {
 						Logger.info("BerryFrame   unzipped "+zipFile);
 					});
 				}
@@ -366,9 +365,8 @@ class BerryFrame {
 
 		try {
 			if (process.platform=="win32") {
-				const Zip = require('node-7z-forall');
-				var archive = new Zip();
-				archive.add(zipFile,"./"+berry).then(function() {
+				const archive = require('7zip-min');
+				archive.pack("./"+berry,zipFile, err => {
 					Logger.info("BerryFrame   created "+zipFile);
 					cb(berry);
 				});

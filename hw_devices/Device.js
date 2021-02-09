@@ -166,6 +166,59 @@ Display.getApiDescription = function () {
 
 // =========================================================================================================
 
+class Image extends Device {
+	// an image display, sitting somewhere on the hardware front panel
+
+	constructor(id,name,xDim,yDim,src) {
+		super(id,name,[],false);
+		this.xDim		= xDim;
+		this.yDim		= yDim;
+		this.direction	= "out";
+		this.strict		= src;
+	}
+
+	setSrc(src) {
+		if (src==this.src) return;
+		this.src=src;
+		if (this.watcher) this.watcher(0,this,"Image",this.src);
+	}
+
+	getValue() {
+		return this.src;
+	}
+
+	setValue(val) {
+		this.setSrc(src);
+	}
+
+}
+
+Image.schema = {
+	description: "A (virtual) generic image display area only usable in the WEB UI",
+	properties: {
+		xDim:		{ type: "integer", description: "number of chars horizontally"},
+		yDim:		{ type: "integer", description: "number of lines vertically" },
+		src:		{ type: "string", description: "filename" },
+	},
+}
+
+Image.getApiDescription = function () {
+	return [
+		{	cmd:"getValue",
+			effect:"returns the current src"
+		},
+		{	cmd:"setSrc",
+			args: [
+				{ name : "src",	meaning: "source file/URL" },
+			],
+			effect:"changes the current source"
+		},
+	];
+}
+
+
+// =========================================================================================================
+
 class TextInput extends Device {
 	// a text input area, sitting somewhere on the hardware front panel
 
@@ -189,7 +242,7 @@ class TextInput extends Device {
 	}
 
 	setValue(val) {
-		Logger.log("TextInput    "+text);
+		Logger.log("TextInput    setValue: "+val);
 		this.contents=val;
 		if (this.watcher) this.watcher(0,this,"TextInput",this.contents);
 	}
@@ -210,6 +263,7 @@ TextInput.schema = {
 	properties: {
 		rows:		{ type: "integer" 	},
 		cols:		{ type: "integer" 	},
+		value:		{ type: "string", description:"initial value" 	},
 		changed:	{ $ref: "#/definitions/actions" },
 	}
 }
@@ -561,3 +615,4 @@ module.exports.LED			= LED;
 module.exports.Button		= Button;
 module.exports.TextInput	= TextInput;
 module.exports.Display		= Display;
+module.exports.Image		= Image;

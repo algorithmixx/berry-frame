@@ -10,7 +10,7 @@ class BerryUI {
 	constructor() {
 		//load socket.io-client and connect to the host that serves the page
 
-		this.version		= "0.9";
+		this.version		= "1.3.6";
 
 		// this should be fetched from the master
 		this.servers		= [];
@@ -108,7 +108,21 @@ class BerryUI {
 			// handle a response describing the state of one or all hardware elements
 			if (response.states && my.hardwares[hw]) {
 				for (var device of response.states) {
-					if		(device.type=="ADS1115") {
+					if		(device.type=="Action") {
+						// update the list of options
+						var opts="";
+						if (device.value.options) {
+							for (var opt of device.value.options) {
+								var selected=(opt==device.value.selected) ? " selected":"";
+								opts+= "<option"+selected+">"+opt+"</option>";
+							}
+							$("#hw_"+hw+"_"+device.id).html(opts);
+						}
+						if (device.value.size) {
+							$("#hw_"+hw+"_"+device.id).attr('size',device.value.size);
+						}
+					}
+					else if	(device.type=="ADS1115") {
 						// show the current voltage
 						var val= ""+device.value;
 						$("#hw_"+hw+"_"+device.id).html(val);
@@ -121,6 +135,14 @@ class BerryUI {
 						// show the current temperature
 						var val= ""+device.value+" °C";
 						$("#hw_"+hw+"_"+device.id).html(val);
+					}
+					else if (device.type=="Label") {
+						// update the label
+						$("#hw_"+hw+"_"+device.id).html(device.name);
+					}
+					else if (device.type=="Image") {
+						// show the contents of the display
+						$("#hw_"+hw+"_"+device.id).attr("src",device.value);
 					}
 					else if (device.type=="MPU6500") {
 						// show the current orientation
@@ -162,6 +184,9 @@ class BerryUI {
 							// produce Morse code
 							new MorseSnd().play(device.value.morse,device.value.unit|| 150);
 						}
+					}
+					else if (device.type=="TextInput") {
+						$("#hw_"+hw+"_"+device.id+" textarea").text(device.value);
 					}
 					else if (device.type=="WS2801" && device.value) {
 						// LED strip
@@ -532,6 +557,10 @@ class BerryUI {
 				if (elm.title) $("#hardware_"+hw).prop("title",elm.title);
 			}
 
+			else if (elm.type=="Image") {
+				it="<img id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style=\""+elm.style+"\" src=\""+elm.src+"\" ></img>";
+			}
+
 			else if (elm.type=="Label") {
 				it="<div id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style=\""+elm.style+"\">"+elm.name+"</div>";
 			}
@@ -595,7 +624,9 @@ class BerryUI {
 
 			else if (elm.type=="TextInput") {
 				it="<div id='hw_"+hw+"_"+elm.id+"' title='"+(elm.title||"")+"' class='"+elm.type+"' style=\""+elm.style+"\">"
-					+"<textarea rows='"+elm.rows+"' cols='"+elm.cols+"'></textarea><button onclick='app.sendTextInput("+hw+",\""+elm.id+"\");' style='vertical-align:top'>&#9166;</button></div>";
+					+"<textarea rows='"+elm.rows+"' cols='"+elm.cols+"'>"
+					+((typeof elm.value!="undefined")? elm.value:"")
+					+"</textarea><button onclick='app.sendTextInput("+hw+",\""+elm.id+"\");' style='vertical-align:top'>&#9166;</button></div>";
 			}
 
 			else if (elm.type=="WS2801") {

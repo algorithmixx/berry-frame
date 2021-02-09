@@ -10,6 +10,7 @@ const Button	= require("../hw_devices/Device.js").Button;
 const Device	= require("../hw_devices/Device.js").Device;
 const Display	= require("../hw_devices/Device.js").Display;
 const DS1820	= require("../hw_devices/DS1820.js").DS1820;
+const Image		= require("../hw_devices/Device.js").Image;
 const Label		= require("../hw_devices/Device.js").Label;
 const LED 		= require("../hw_devices/Device.js").LED;
 const Microphone= require("../hw_devices/Microphone.js");
@@ -108,9 +109,9 @@ Task.getApiDescription = function() {
 
 class Hardware {
 	// 	represents a group of virtual building blocks (elements) which are connected to devices
-	/*	
+	/*
 		hardware description files have the extension ".hwd"
-	
+
 		They use a slightly extended JSON syntax:
 		* both types of comments are allowed
 		* element names must not be enclosed in quotes
@@ -121,7 +122,7 @@ class Hardware {
 
 	*/
 	constructor() {
-	
+
 		// gpio functionality
 		this.pins=["",
 			"+3V3",							"+5V",							//  2
@@ -143,7 +144,7 @@ class Hardware {
 			"GPIO_13 PW1",					"GND",							// 34
 			"GPIO_19 PW1 SPI1:MISO I2S:WS",	"GPIO_16 SPI1:CE0",				// 36
 			"GPIO_26",						"GPIO_20 SPI1:MOSI I2S:DIN",	// 38
-			"GND",							"GPIO_21 SPI1:CLK I2S:DOUT",	// 40		
+			"GND",							"GPIO_21 SPI1:CLK I2S:DOUT",	// 40
 		];
 
 		// gpio number to pin number
@@ -157,13 +158,13 @@ class Hardware {
 			 9,25,11, 8, 0, 7, 0, 0, 5, 0,
 			 6,12,13, 0,19,16,26,20, 0,21,
 		];
-		
+
 		this.appObject = null;		// application instance
-		
+
 		this.createHwdSchema();
-		
+
 	}
-	
+
 	loadDescription(type,name,rev,emulate,silent,full) {
 		// load a textual description of the MCU (micro controller unit) and its peripherals to configure the hardware
 		// if a specific rev(ision) is given: search for a sub directory with that name
@@ -176,14 +177,14 @@ class Hardware {
 			var fs 	= require('fs');	// filesystem module
 			var data = fs.readFileSync(path+"server/"+type+".hwd",'utf8');
 			this.parseDescription(name,data);
-						
+
 			// if there is no hardware or if intentional emulation was requested: emulate the hardware
 			// emulation will activate logging by default
-			
+
 			if (process.platform === "win32" || emulate) {
 				this.setAll("emulate",true);
 			}
-			
+
 			// if we do not need a full load we are done
 			if (!full) return true;
 
@@ -216,7 +217,7 @@ class Hardware {
 				}
 				if (!valid) return false;
 			}
-			
+
 			// load the specific application class
 			// Such a class will typically register some methods at the device classes.
 			// its (single) instance can be accessed by target:"app" in a harware description file
@@ -226,7 +227,7 @@ class Hardware {
 			else {
 				this.appObject=null;
 			}
-			
+
 			return true;
 		}
 		catch(err) {
@@ -234,12 +235,12 @@ class Hardware {
 			return false;
 		}
 	}
-	
+
 	parseDescription(name,configText) {
 		// create a map of elements from a textual representation of the hardware configuration
 
 		this.name  = name;
-		
+
 		var plainConfigText = configText
 			.replace(/\s\/\/.*?\r?\n/g,'\n')									// remove comments
 			.replace(/\/\*[\s\S]*?\*\//g,'')									// remove comments
@@ -247,17 +248,17 @@ class Hardware {
 			.replace(/,\s*([\}\]])/g,"$1")										// remove superfluous comma
 			.replace(/"\+?\r?\n\s*"/g,"")										// concatenate multi-line strings
 		;
-		
+
 		//Logger.info(plainConfigText);
 		try {
 			var config = JSON.parse(plainConfigText);
-			
+
 			for (var atr of ["title","type","desc","port","appClass","rev","img"]) delete this[atr];
 			for (var atr in config) {
 				if (atr=="elms") continue;
 				this[atr]=config[atr];
 			}
-			this.elms={};		
+			this.elms={};
 			for (var elm of config.elms) {
 				this.elms[elm.id]=elm;
 			}
@@ -271,25 +272,25 @@ class Hardware {
 	}
 
 	set(elmId,attr,value) {
-		// set an element´s attribute to a certain value
+		// set an elementï¿½s attribute to a certain value
 		if (!isPresent(this.elms[elmId])) {
 			Logger.error("Hardware: unknown element '"+elmId+"'");
 			return;
 		}
 		this.elms[elmId][attr]=value;
 	}
-	
+
 	setAll(attr,value) {
 		// set a given attribute to a given value for all devices
 		for (var elmId in this.elms) {
 			this.set(elmId,attr,value);
 		}
 	}
-	
+
 	exclude(options) {
 		this.exclude=options;
 	}
-	
+
 	getDeviceAtGpio(gpio,direction) {
 		// deliver the device at the given gpio (or null)
 		for (var elmId in this.elms) {
@@ -306,7 +307,7 @@ class Hardware {
 		this.name			= name;
 		this.version		= version;
 		this.creationTime	= new Date().getTime();
-		
+
 		for (var elmId in this.elms) {
 			var elm=this.elms[elmId];
 
@@ -314,11 +315,11 @@ class Hardware {
 
 			if (isMissing(elm.name))	elm.name	= elm.id;
 			if (isMissing(elm.emulate)) elm.emulate = false;
-			
+
 			if (elm.type=="Action") {
 				;	// do nothing
 			}
-			else if (elm.type=="ADS1115") {				
+			else if (elm.type=="ADS1115") {
 				// create AD converter
 				elm.dev = new ADS1115 (
 					elm.id,
@@ -356,7 +357,7 @@ class Hardware {
 					elm.emulate
 				);
 			}
-			else if (elm.type=="DS1820") {		
+			else if (elm.type=="DS1820") {
 				// create temperature sensor (1-wire)
 				var below={};
 				if (elm.below) {
@@ -390,6 +391,17 @@ class Hardware {
 			else if (elm.type=="FrontPanel") {
 				; // do nothing
 			}
+			else if	(elm.type=="Image") {
+				// create an image for web display
+				elm.dev = new Image(
+					elm.id,
+					elm.name,
+					elm.xDim?elm.xDim:40,
+					elm.yDim?elm.yDim:4,
+					elm.src?elm.src:"img/noImage.png",
+					elm.emulate
+				);
+			}
 			else if (elm.type=="Label") {
 				; // do nothing
 			}
@@ -403,7 +415,7 @@ class Hardware {
 					elm.emulate
 				);
 			}
-			else if (elm.type=="Microphone") {		
+			else if (elm.type=="Microphone") {
 				// create microphone
 				elm.dev = new Microphone (
 					elm.id,
@@ -411,7 +423,7 @@ class Hardware {
 					elm.emulate
 				);
 			}
-			else if (elm.type=="MPU6500") {		
+			else if (elm.type=="MPU6500") {
 				// create motion sensor
 				elm.dev = new MPU6500 (
 					elm.id,
@@ -433,7 +445,7 @@ class Hardware {
 				);
 				if (elm.duty) elm.dev.limitDutyCycle(elm.duty);
 			}
-			else if (elm.type=="Speakers") {		
+			else if (elm.type=="Speakers") {
 				// create speakers
 				elm.dev = new Speakers (
 					elm.id,
@@ -443,7 +455,7 @@ class Hardware {
 					elm.emulate
 				);
 			}
-			else if (elm.type=="Task") {		
+			else if (elm.type=="Task") {
 				// create a monitoring task
 				if (elm.monitor && elm.monitor.elm) {
 					var target = this.elms[elm.monitor.elm];
@@ -466,8 +478,9 @@ class Hardware {
 					elm.rows?elm.rows:1,
 					elm.emulate
 				);
+				if (typeof elm.value != "undefined") elm.dev.setValue(elm.value);
 			}
-			else if (elm.type=="WS2801") {		
+			else if (elm.type=="WS2801") {
 				// create led strip
 				if (!elm.shape ) {
 					if (elm.numLEDs % 2) {
@@ -485,10 +498,10 @@ class Hardware {
 					elm.emulate
 				);
 				elm.dev.connect("/dev/spidev"+elm.spi,elm.speed);
-				
-				if (elm.reverse) elm.dev.reverse(); 
+
+				if (elm.reverse) elm.dev.reverse();
 			}
-			else {		
+			else {
 				// unknown element type
 				Logger.error("Hardware: unknown device type "+elm.type);
 			}
@@ -497,13 +510,13 @@ class Hardware {
 		// now we have instantiated all hardware elements
 		// initialize the application;
 		if (this.appObject) this.appObject.init();
-		
-		return true;		
+
+		return true;
 	}
-	
+
 	getActions(kind) {
-		// return a list of initial (kind=="init") or final (kind=="exit") actions 
-		// defined as "init" or "exit" property of the FrontPanel in the HWD 
+		// return a list of initial (kind=="init") or final (kind=="exit") actions
+		// defined as "init" or "exit" property of the FrontPanel in the HWD
 		for (var id in this.elms) {
 			var elm = this.elms[id];
 			if (elm.type=="FrontPanel") {
@@ -522,7 +535,7 @@ class Hardware {
 	}
 
 	release() {
-		// free resources 
+		// free resources
 
 		for(var elmId in this.elms) {
 			var elm=this.elms[elmId];
@@ -537,7 +550,7 @@ class Hardware {
 			}
 		}
 	}
-	
+
 	onButtonChanged(rc,button,type,value) {
 		// activates the outputs linked to a button while it is pushed
 
@@ -564,26 +577,26 @@ class Hardware {
 		for (let elm of elms) {
 			Logger.log("Hardware     handle action of "+id+" ("+value+") for elm "+elm+": "+JSON.stringify(action));
 			let obj = (elm=="app") ? theHardware.appObject : theHardware.elms[elm];
-			
+
 			// check when condition (requires elm to have a getValue() method)
 			if (isPresent(action.when) && obj.dev.getValue()!=action.when) continue;
-			
+
 			// clear delay timer if requested
 			if (action.clear) {
 				if (isMissing(theTimers[elm])) theTimers[elm]={};
 				if (isPresent(theTimers[elm][action.cmd])) {
 					clearTimeout(theTimers[elm][action.cmd]);
-					delete theTimers[elm][action.cmd];					
+					delete theTimers[elm][action.cmd];
 				}
 				continue;
 			}
-			
+
 			if (action.after) {
 				// isolated new timer
 				setTimeout(
 					function() {
 						if 	(elm=="app") obj[action.cmd](baseElm,value,action);
-						else			 obj.dev[action.cmd](isPresent(action.arg)?action.arg:value);	
+						else			 obj.dev[action.cmd](isPresent(action.arg)?action.arg:value);
 					}, action.after
 				);
 			}
@@ -593,7 +606,7 @@ class Hardware {
 				if (isPresent(theTimers[elm][action.cmd])) {
 					// for "once-timers": ignore further triggering
 					if (action.once) continue;
-					// for normal timers: clear timer and create a new one with updated settings 
+					// for normal timers: clear timer and create a new one with updated settings
 					clearTimeout(theTimers[elm][action.cmd]);
 					delete theTimers[elm][action.cmd];
 				}
@@ -614,7 +627,7 @@ class Hardware {
 			}
 		}
 	}
-		
+
 	getAllStatesJson() {
 		var states=[];
 		for (var elm of Object.values(this.elms)) {
@@ -643,6 +656,9 @@ class Hardware {
 			else if (elm.type=="Task") {
 				; // taks have no state; this might be changed to "running" or "stopped"
 			}
+			else if (elm.type=="TextInput") {
+				states.push({id:elm.id,type:elm.type,value:elm.dev.getValue()});
+			}
 			else if (elm.type=="WS2801") {
 				states.push({id:elm.id,type:elm.type,value:elm.dev.getValue()});
 			}
@@ -652,7 +668,7 @@ class Hardware {
 		}
 		return {states:states};
 	}
-	
+
 	getApiHTML(type,berry) {
 		var api = this.apiHelp(type,berry);
 		var html = "";
@@ -661,14 +677,14 @@ class Hardware {
 			inst=api.API[instName];
 			break;
 		}
-		
+
 		if (inst.length==0) return "<h4>"+type+" has no API methods.";
-		
+
 		for (var method of inst) {
 			html+="<h4>"+(type=="app" ? this.name : type)+" . "+method.cmd+" ( ";
 			var parms=[];
 			if (method.args) {
-				for(var arg of method.args) parms.push(arg.name); 
+				for(var arg of method.args) parms.push(arg.name);
 			}
 			html+=parms.join(", ");
 			html+=" ) : &nbsp; <i style='font-weight:300'>"+method.effect+"</i></h4>";
@@ -682,7 +698,7 @@ class Hardware {
 		}
 		return html;
 	}
-	
+
 	getSetupJson() {
 		var hwElms={};
 		var gpios = [];
@@ -714,7 +730,7 @@ class Hardware {
 		for (var p=1;p<=40;p++) {
 			if (!pins[p]) pins[p]={gpio:this.pinGpios[p],signal:this.pins[p]};
 		}
-		
+
 		var response={
 			setup : {
 				title:			this.title,
@@ -744,10 +760,10 @@ class Hardware {
 				api:			this.getApiHTML("api"),
 			},
 		};
-		if (this.img) response.setup.img = this.img;		
+		if (this.img) response.setup.img = this.img;
 		return response;
 	}
-	
+
 	getDeviceTypes() {
 		var text="";
 		for (var type in this.deviceTypes) {
@@ -755,7 +771,7 @@ class Hardware {
 		}
 		return text;
 	}
-	
+
 	apiHelp(type,berry) {
 		var help = {};
 		if (type=="all") {
@@ -773,7 +789,7 @@ class Hardware {
 				"to reference the Hardware as a whole ('hardware'), "+
 				"the server as a whole ('server'), the application as a whole ('app') "+
 				"or the API as a whole ('api'). ";
-			help.Example = 
+			help.Example =
 				"If a hardware description contains a LED named 'alarm', you could call "+
 				"yourBerryServer:port/api?id=alarm,cmd:blink,cycles:3";
 			help.API = {};
@@ -790,23 +806,23 @@ class Hardware {
 		else if (type=="hardware") {
 			help.HWD_Schema = {};
 			help.API = {hardware: Hardware.getApiDescription()};
-		}		
+		}
 		else if (type=="server") {
 			help.HWD_Schema = {};
 			help.API = {server: Hardware.getApiDescriptionForServer()};
-		}		
+		}
 		else if (type=="app") {
 			help.HWD_Schema = {};
 			help.API = {app: App.getApiDescription()};
-		}		
+		}
 		else if (type=="api") {
 			help.HWD_Schema = {};
 			help.API = {api: Api.getApiDescription()};
-		}		
+		}
 		else if (this.deviceTypes[type]) {
 			help.HWD_Schema = this.deviceTypes[type].schema;
 			help.API = {};
-			help.API["element_of_type_"+type] = this.deviceTypes[type].getApiDescription();			
+			help.API["element_of_type_"+type] = this.deviceTypes[type].getApiDescription();
 		}
 		else {
 			help.HWD_Schema = {};
@@ -819,14 +835,14 @@ class Hardware {
 				const appClass = require(process.cwd()+"/"+berry+"/server/"+berry+".js")[berry];
 				help.API["berry_"+berry] = appClass.getApiDescription();
 			}
-			catch(e) { 
+			catch(e) {
 				help.info = "There is no application class for berry: "+berry;
 			}
 		}
-		
+
 		return help;
 	}
-	
+
 	createHwdSchema() {
 
 		this.deviceTypes= {
@@ -836,6 +852,7 @@ class Hardware {
 			Display:	Display,
 			DS1820:		DS1820,
 			FrontPanel:	FrontPanel,
+			Image:		Image,
 			Label:		Label,
 			LED:		LED,
 			Microphone:	Microphone,
@@ -858,10 +875,10 @@ class Hardware {
 			// all elements are objects
 			schema.type = "object";
 			if (!schema.properties) schema.properties = {};
-			
+
 			// do not allow unknown properties
 			schema.additionalProperties = false;
-			
+
 			// we will add some required properties
 			if (!schema.required) schema.required=[];
 
@@ -888,7 +905,7 @@ class Hardware {
 			}
 
 		}
-	}	
+	}
 }
 
 Hardware.getApiDescription = function() {
@@ -941,4 +958,3 @@ var theTimers = {};
 var theHardware = new Hardware();
 module.exports.theHardware = theHardware;
 module.exports.Hardware = Hardware;
-
